@@ -1,11 +1,19 @@
 package ds.dfs.namenode;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.DataInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.HashMap;
 
 import ds.dfs.comm.DFSMessage;
@@ -19,14 +27,71 @@ import ds.dfs.util.FileSender;
 public class NameNode extends Thread {
 
 	private static HashMap<String, DataNodeMetadata> dataNodes = new HashMap<String, DataNodeMetadata>();
-	private static HashMap<String, DFSFile> fileList = new HashMap<String, DFSFile>();
+	private static ArrayList<DFSFile> fileList = new ArrayList<DFSFile>();
 	private static ServerSocket server = null;
 	private static int dataNodeCount = 0;
-	
-	private static String dfsRoot;
+	public static String dfsRoot;
 
 	public static void addDataNode(String dataNodeId, DataNodeMetadata metadata) {
 		dataNodes.put(dataNodeId, metadata);
+	}
+
+	public static void listDFSFiles() {
+
+	}
+
+	public static void splitFile(String file) {
+		try {
+			System.out.println(file);
+			FileInputStream fstream = new FileInputStream(file);
+			DataInputStream in = new DataInputStream(fstream);
+			BufferedReader br = new BufferedReader(new InputStreamReader(in));
+			String strLine;
+			ArrayList<String> lines = new ArrayList();
+			int count = 0, partitionCount = 1;
+			while ((strLine = br.readLine()) != null) {
+				lines.add(strLine);
+				count++;
+				if (count == 3) {
+					String[] fileDir = file.split("/");
+					File partFile = new File(dfsRoot + "/tempFolder/"
+							+ fileDir[fileDir.length - 1] + "/"
+							+ fileDir[fileDir.length - 1] + "_"
+							+ partitionCount);
+					final File parent_directory = partFile.getParentFile();
+					if (null != parent_directory)
+						parent_directory.mkdirs();
+					FileWriter fw = new FileWriter(partFile);
+					BufferedWriter out = new BufferedWriter(fw);
+					for (String s : lines) {
+						out.write(s + "\n");
+					}
+					out.close();
+					sendFilesToDataNodes(partFile.getAbsolutePath());
+					count = 0;
+					partitionCount++;
+					lines.clear();
+				}
+			}
+			if (count != 0) {
+				String[] fileDir = file.split("/");
+				File partFile = new File(dfsRoot + "/tempFolder/"
+						+ fileDir[fileDir.length - 1] + "/"
+						+ fileDir[fileDir.length - 1] + "_" + partitionCount);
+				final File parent_directory = partFile.getParentFile();
+				if (null != parent_directory)
+					parent_directory.mkdirs();
+				FileWriter fw = new FileWriter(partFile);
+				BufferedWriter out = new BufferedWriter(fw);
+				for (String s : lines) {
+					out.write(s + "\n");
+				}
+				sendFilesToDataNodes(partFile.getAbsolutePath());
+				out.close();
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 
 	public static void printDataNodes() {
@@ -36,23 +101,27 @@ public class NameNode extends Thread {
 	}
 
 	public static void getFileToSelf() {
-		
+
 	}
-	
-	public static void addFileToDFS(String file) {
+
+	public static void sendFilesToDataNodes(String file) {
 		for (String s : dataNodes.keySet()) {
 			Socket socket;
 			try {
-				socket = new Socket(dataNodes.get(s).host, Constants.DATANODE_PORT);
-				ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
+				socket = new Socket(dataNodes.get(s).host,
+						Constants.DATANODE_PORT);
+				ObjectOutputStream out = new ObjectOutputStream(
+						socket.getOutputStream());
 				out.writeObject(new DFSMessage(Command.NAMENODE, ""));
 				out.flush();
-				ObjectInputStream in = new ObjectInputStream(socket.getInputStream());
-				if(((DFSMessage)in.readObject()).getCommand() == Command.OK) {
+				ObjectInputStream in = new ObjectInputStream(
+						socket.getInputStream());
+				if (((DFSMessage) in.readObject()).getCommand() == Command.OK) {
 					out.writeObject(new DFSMessage(Command.CREATE, file));
 					out.flush();
-					if(((DFSMessage)in.readObject()).getCommand() == Command.OK)
-						new FileSender(dfsRoot + "\\" + file, socket, in, out).start();
+					if (((DFSMessage) in.readObject()).getCommand() == Command.OK)
+						new FileSender(file, socket, in, out)
+								.start();
 				}
 			} catch (UnknownHostException e) {
 				System.out.println("UnknownHostException: " + e.getMessage());
@@ -65,33 +134,8 @@ public class NameNode extends Thread {
 		}
 	}
 
-	@Override
-	public void run() {
-		try {
-			server = new ServerSocket(Constants.NAMENODE_PORT);
-			System.out.println("NameNode server listening");
-			while (true) {
-				Socket socket = server.accept();
-				ObjectInputStream in = new ObjectInputStream(
-						socket.getInputStream());
-				ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
-				DFSMessage message = (DFSMessage) in.readObject();
-				if (message.getCommand() == Command.DATANODE) {
-					new DataNodeHandler(socket, in, out).start();
-				} else if (message.getCommand() == Command.DFSCLIENT) {
-					new DFSClientHandler(socket, in, out).start();
-				}
-				//socket.close();
-			}
-		} catch (IOException e) {
-			System.out.println("IOException occurred: " + e.getMessage());
-		} catch (ClassNotFoundException e) {
-			System.out.println("ClassNotFoundException occurred: " + e.getMessage());
-		}
-	}
-
 	public static void main(String[] args) {
-		//new NameNode().start();
+		// new NameNode().start();
 		dfsRoot = args[0];
 		try {
 			server = new ServerSocket(Constants.NAMENODE_PORT);
@@ -108,12 +152,13 @@ public class NameNode extends Thread {
 				} else if (message.getCommand() == Command.DFSCLIENT) {
 					new DFSClientHandler(socket, in, out).start();
 				}
-				//socket.close();
+				// socket.close();
 			}
 		} catch (IOException e) {
 			System.out.println("IOException occurred: " + e.getMessage());
 		} catch (ClassNotFoundException e) {
-			System.out.println("ClassNotFoundException occurred: " + e.getMessage());
+			System.out.println("ClassNotFoundException occurred: "
+					+ e.getMessage());
 		}
 	}
 
