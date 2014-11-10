@@ -22,6 +22,7 @@ public class NameNode extends Thread {
 	private static HashMap<String, DFSFile> fileList = new HashMap<String, DFSFile>();
 	private static ServerSocket server = null;
 	private static int dataNodeCount = 0;
+	
 	private static String dfsRoot;
 
 	public static void addDataNode(String dataNodeId, DataNodeMetadata metadata) {
