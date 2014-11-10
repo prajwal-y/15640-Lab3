@@ -31,6 +31,9 @@ public class DFSClientHandler extends Thread {
 				//NameNode.printDataNodes();
 				NameNode.addFileToDFS((String)msg.getPayload());
 			}
+			else if(msg.getCommand() == Command.FILETONAMENODE) {
+				NameNode.getFileToSelf();
+			}
 			socket.close();
 		} catch (IOException e) {
 			System.out.println("IOException occurred: " + e.getMessage());

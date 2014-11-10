@@ -34,6 +34,10 @@ public class NameNode extends Thread {
 		}
 	}
 
+	public static void getFileToSelf() {
+		
+	}
+	
 	public static void addFileToDFS(String file) {
 		for (String s : dataNodes.keySet()) {
 			Socket socket;
