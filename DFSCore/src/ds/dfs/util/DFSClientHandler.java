@@ -28,17 +28,22 @@ public class DFSClientHandler extends Thread {
 			out.flush();
 			DFSMessage msg = (DFSMessage) in.readObject();
 			if (msg.getCommand() == Command.FILETODFS) {
-				//NameNode.printDataNodes();
-				System.out.println((String)msg.getPayload());
-				String tempFilePath = NameNode.dfsRoot + ((String)msg.getPayload()).split("DFS://")[1];
-				Thread thread = (Thread) new FileReceiver( NameNode.dfsRoot + ((String)msg.getPayload()).split("DFS://")[1], socket, out, in);
+				FileObject fo = (FileObject) msg.getPayload();
+				System.out.println((String)fo.file);
+				String tempFilePath = NameNode.DFS_ROOT + ((String)fo.file).split("DFS://")[1];
+				Thread thread = (Thread) new FileReceiver( NameNode.DFS_ROOT + ((String)fo.file).split("DFS://")[1], socket, out, in);
 				thread.start();
 				thread.join();
-				NameNode.splitFile(tempFilePath);
+				if(fo.isSplittable)
+					NameNode.splitFile(tempFilePath);
+				else {
+					String[] fileList = tempFilePath.split("/");
+					NameNode.sendFilesToDataNodes(tempFilePath, fileList[fileList.length - 1] + "/" + fileList[fileList.length - 1]);
+				}
 				//NameNode.addFileToDFS((String)msg.getPayload());
 			}
 			else if(msg.getCommand() == Command.FILETONAMENODE) {
-				NameNode.getFileToSelf();
+				//TODO:
 			}
 			else if(msg.getCommand() == Command.LISTFILES) {
 				//TODO:

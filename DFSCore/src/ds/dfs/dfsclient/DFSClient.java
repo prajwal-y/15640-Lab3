@@ -8,13 +8,30 @@ import java.net.Socket;
 import ds.dfs.comm.DFSMessage;
 import ds.dfs.util.Command;
 import ds.dfs.util.Constants;
+import ds.dfs.util.FileObject;
 import ds.dfs.util.FileSender;
 
 public class DFSClient {
 
-	public static void copyToDFS(String file, String DFSfilePath) {
+	String nameNodeHost = null;
+	
+	public DFSClient(String host) {
+		nameNodeHost = host;
+	}
+	
+	public void copyToLocal(String file, String localFilePath) {
+		
+	}
+	
+	/**
+	 * Copy a local file to DFS
+	 * @param file
+	 * @param DFSfilePath
+	 * @param split
+	 */
+	public void copyToDFS(String file, String DFSfilePath, boolean split) {
 		try {
-			Socket client = new Socket("127.0.0.1", Constants.NAMENODE_PORT);
+			Socket client = new Socket(nameNodeHost, Constants.NAMENODE_PORT);
 			ObjectOutputStream outStream = new ObjectOutputStream(
 					client.getOutputStream());
 			outStream.writeObject(new DFSMessage(Command.DFSCLIENT, ""));
@@ -23,9 +40,10 @@ public class DFSClient {
 			DFSMessage msg = (DFSMessage) inStream.readObject();
 			if (msg.getCommand() == Command.OK) {
 				String[] fileSplit = file.split("/");
-				String filePath = DFSfilePath + "/" + fileSplit[fileSplit.length - 1];			
+				String filePath = DFSfilePath + "/" + fileSplit[fileSplit.length - 1];	
+				FileObject fo = new FileObject(filePath, split);
 				outStream.writeObject(new DFSMessage(Command.FILETODFS,
-						filePath));
+						fo));
 				System.out.println(filePath);
 				new FileSender(file, client, inStream, outStream).start();
 			}
@@ -40,9 +58,4 @@ public class DFSClient {
 		}
 	}
 
-	public static void main(String[] args) {
-		// TODO: Accept commands
-		String masterNodeHost = "127.0.0.1";
-		copyToDFS("C:/Users/Prajwal/Desktop/DFS/input.txt", "DFS://");
-	}
 }

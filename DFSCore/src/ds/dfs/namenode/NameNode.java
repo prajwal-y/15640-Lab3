@@ -29,8 +29,7 @@ public class NameNode extends Thread {
 	private static HashMap<String, DataNodeMetadata> dataNodes = new HashMap<String, DataNodeMetadata>();
 	private static ArrayList<DFSFile> fileList = new ArrayList<DFSFile>();
 	private static ServerSocket server = null;
-	private static int dataNodeCount = 0;
-	public static String dfsRoot;
+	public static String DFS_ROOT;
 
 	public static void addDataNode(String dataNodeId, DataNodeMetadata metadata) {
 		dataNodes.put(dataNodeId, metadata);
@@ -40,6 +39,26 @@ public class NameNode extends Thread {
 
 	}
 
+	/**
+	 * Delete temporarily stored files
+	 */
+	private void cleanTempFolder() {
+		File file = new File(DFS_ROOT + "/tempFolder");
+		String[] myFiles;
+		if (file.isDirectory()) {
+			myFiles = file.list();
+			for (int i = 0; i < myFiles.length; i++) {
+				File myFile = new File(file, myFiles[i]);
+				myFile.delete();
+			}
+		}
+	}
+
+	/**
+	 * Splits the file based on number of lines.
+	 * 
+	 * @param file
+	 */
 	public static void splitFile(String file) {
 		try {
 			System.out.println(file);
@@ -47,14 +66,14 @@ public class NameNode extends Thread {
 			DataInputStream in = new DataInputStream(fstream);
 			BufferedReader br = new BufferedReader(new InputStreamReader(in));
 			String strLine;
-			ArrayList<String> lines = new ArrayList();
+			ArrayList<String> lines = new ArrayList<String>();
 			int count = 0, partitionCount = 1;
+			String[] fileDir = file.split("/");
 			while ((strLine = br.readLine()) != null) {
 				lines.add(strLine);
 				count++;
-				if (count == 3) {
-					String[] fileDir = file.split("/");
-					File partFile = new File(dfsRoot + "/tempFolder/"
+				if (count == Constants.SPLIT_SIZE) {
+					File partFile = new File(DFS_ROOT + "/tempFolder/"
 							+ fileDir[fileDir.length - 1] + "/"
 							+ fileDir[fileDir.length - 1] + "_"
 							+ partitionCount);
@@ -67,15 +86,18 @@ public class NameNode extends Thread {
 						out.write(s + "\n");
 					}
 					out.close();
-					sendFilesToDataNodes(partFile.getAbsolutePath());
+					sendFilesToDataNodes(
+							partFile.getAbsolutePath(),
+							fileDir[fileDir.length - 1] + "/"
+									+ partFile.getName());
 					count = 0;
 					partitionCount++;
 					lines.clear();
 				}
 			}
+			br.close();
 			if (count != 0) {
-				String[] fileDir = file.split("/");
-				File partFile = new File(dfsRoot + "/tempFolder/"
+				File partFile = new File(DFS_ROOT + "/tempFolder/"
 						+ fileDir[fileDir.length - 1] + "/"
 						+ fileDir[fileDir.length - 1] + "_" + partitionCount);
 				final File parent_directory = partFile.getParentFile();
@@ -86,7 +108,8 @@ public class NameNode extends Thread {
 				for (String s : lines) {
 					out.write(s + "\n");
 				}
-				sendFilesToDataNodes(partFile.getAbsolutePath());
+				sendFilesToDataNodes(partFile.getAbsolutePath(),
+						fileDir[fileDir.length - 1] + "/" + partFile.getName());
 				out.close();
 			}
 		} catch (IOException e) {
@@ -94,17 +117,31 @@ public class NameNode extends Thread {
 		}
 	}
 
+	/**
+	 * Prints all the existing DataNodes
+	 */
 	public static void printDataNodes() {
 		for (String s : dataNodes.keySet()) {
 			System.out.println(s);
 		}
 	}
 
-	public static void getFileToSelf() {
-
+	/**
+	 * Prints all the file in DFS
+	 */
+	public static void listFiles() {
+		for (DFSFile file : fileList) {
+			System.out.println(file.fileName + " in " + file.dataNodeHost);
+		}
 	}
 
-	public static void sendFilesToDataNodes(String file) {
+	/**
+	 * Sends the specified file to all the DataNodes (Replication)
+	 * 
+	 * @param file
+	 * @param dataFileName
+	 */
+	public static void sendFilesToDataNodes(String file, String dataFileName) {
 		for (String s : dataNodes.keySet()) {
 			Socket socket;
 			try {
@@ -117,11 +154,15 @@ public class NameNode extends Thread {
 				ObjectInputStream in = new ObjectInputStream(
 						socket.getInputStream());
 				if (((DFSMessage) in.readObject()).getCommand() == Command.OK) {
-					out.writeObject(new DFSMessage(Command.CREATE, file));
+					out.writeObject(new DFSMessage(Command.CREATE, dataFileName));
 					out.flush();
 					if (((DFSMessage) in.readObject()).getCommand() == Command.OK)
-						new FileSender(file, socket, in, out)
-								.start();
+						// Initiate sending file
+						new FileSender(file, socket, in, out).start();
+					// Save the file information in NameNode
+					DFSFile dfsFile = new DFSFile(file, file,
+							dataNodes.get(s).host);
+					fileList.add(dfsFile);
 				}
 			} catch (UnknownHostException e) {
 				System.out.println("UnknownHostException: " + e.getMessage());
@@ -135,9 +176,9 @@ public class NameNode extends Thread {
 	}
 
 	public static void main(String[] args) {
-		// new NameNode().start();
-		dfsRoot = args[0];
+		DFS_ROOT = args[0];
 		try {
+			// Start the NameNode server
 			server = new ServerSocket(Constants.NAMENODE_PORT);
 			while (true) {
 				System.out.println("NameNode server running");

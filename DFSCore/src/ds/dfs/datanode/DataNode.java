@@ -56,8 +56,8 @@ public class DataNode extends Thread {
 	}
 
 	public static void main(String[] args) {
-		nameNodeHost = "127.0.0.1";
-		dfsRoot = args[0];
+		nameNodeHost = args[0];
+		dfsRoot = args[1];
 		dataNodeGuid = UUID.randomUUID().toString();
 		try {
 			client = new Socket(nameNodeHost, Constants.NAMENODE_PORT);

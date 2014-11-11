@@ -26,7 +26,9 @@ public class FileReceiver extends Thread {
 		try {
 			File f = new File(fileName);
 			System.out.println(fileName);
-			f.createNewFile();
+			final File parent_directory = f.getParentFile();
+			if (null != parent_directory)
+				parent_directory.mkdirs();
 			byte[] bytes = (byte[])in.readObject();
 			Files.write(f.toPath(), bytes);
 			socket.close();
