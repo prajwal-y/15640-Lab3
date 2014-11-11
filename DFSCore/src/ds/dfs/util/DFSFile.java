@@ -1,17 +1,18 @@
 package ds.dfs.util;
 
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.HashMap;
 
 public class DFSFile implements Serializable{
 	private static final long serialVersionUID = 1L;
 	public String fileName;
-	public String partitionId;
-	public String dfsFilePath;
-	public String dataNodeHost;
+	public int numPartitions;
+	public HashMap<String, ArrayList<String>> partitionLoc;
 	
-	public DFSFile(String f, String path, String host) {
+	public DFSFile(String f, int n, HashMap<String, ArrayList<String>> host) {
 		fileName = f;
-		dfsFilePath = path;
-		dataNodeHost = host;
+		numPartitions = n;
+		partitionLoc = host;
 	}
 }
