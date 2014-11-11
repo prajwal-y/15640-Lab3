@@ -25,7 +25,7 @@ public class FileSender extends Thread {
 	@Override
 	public void run() {
 		try {
-			System.out.println("Yay!");
+			System.out.println("Yay!" + file);
 			File f = new File(file);
 			byte[] content = Files.readAllBytes(f.toPath());
 			objOut.writeObject(content);
@@ -33,6 +33,7 @@ public class FileSender extends Thread {
 			objIn.close();
 			socket.close();
 		} catch (IOException e) {
+			e.printStackTrace();
 			System.out.println("IOException occurred: " + e.getMessage());
 		}
 	}
