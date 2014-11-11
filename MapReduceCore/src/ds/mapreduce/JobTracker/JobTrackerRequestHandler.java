@@ -63,7 +63,7 @@ public class JobTrackerRequestHandler extends Thread {
 		tracker.addJob(jobId);
 		DFSClient dfsClient = new DFSClient("127.0.0.1"); 
 		ArrayList<InputSplit> splits = new ArrayList<InputSplit>();
-		ArrayList<String> parts = dfsClient.getFileParts(iPath);
+		//ArrayList<String> parts = dfsClient.getFileParts(iPath);
 		ArrayList<String> parts = new ArrayList<String>();
 		for (String part : parts) {
 			InputSplit split = new InputSplit(part, 0, 0);
