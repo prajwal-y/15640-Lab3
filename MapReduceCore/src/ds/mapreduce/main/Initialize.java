@@ -40,7 +40,7 @@ public class Initialize {
 	}
 
 	public static void main(String[] args) {
-		parseConfigFile();
+		//parseConfigFile();
 		try {
 			currentHostName = Runtime.getRuntime().exec("hostname").getOutputStream().toString();
 			System.out.println("Current host is: " + currentHostName);
@@ -48,7 +48,9 @@ public class Initialize {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		if(currentHostName.equals(jobTrackerHostName)){
+		
+		//if(currentHostName.equals(jobTrackerHostName)){
+		if(args[0].equals("jobtracker")){
 			System.out.println("This machine is the JobTracker");
 			System.out.println("Starting JobTracker...");
 			System.out.println("JobTracker started");

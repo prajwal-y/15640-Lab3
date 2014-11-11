@@ -2,24 +2,31 @@ package ds.mapreduce.Common;
 
 
 public class Mapper extends Thread {
-	public void map(String record, OutputCollector collector) {
+	MapRecordReader reader;
+	MapOutputCollector collector;
+	
+	public void map(String record, MapOutputCollector collector) {
 		String key = null;
 		String value = null;
-		collector.write(key, value);
+		collector.writeToBuffers(key, value);
+	}
+	
+	public Mapper(MapRecordReader r, MapOutputCollector c){
+		reader = r;
+		collector = c;
 	}
 
 	public void cleanup() {
 		// Nothing here
 	}
 
-	public void run(RecordReader reader, String path) {
+	public void run() {
 		String nextRecord;
-		OutputCollector collector = new OutputCollector(path); // TODO get location
-															// to write to
 		try {
 			while ((nextRecord = reader.nextRecord()) != null) {
 				map(nextRecord, collector);
 			}
+			collector.flush();
 		} finally {
 			cleanup();
 		}

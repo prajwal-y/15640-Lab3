@@ -10,13 +10,18 @@ public class Task implements Serializable{
 	private String jobId;
 	private String taskId;
 	private String jarPath;
+	private String outputPath;
+	private int numPartitions;
 	
-	public Task(TaskType t, TaskState s, String id, String jPath, String tId){
+	public Task(TaskType t, TaskState s, String id, String jPath, 
+			String tId, int nPart, String oPath){
 		type = t;
 		state = s;
 		jobId = id;
 		jarPath = jPath;
 		taskId = tId;
+		numPartitions = nPart;
+		outputPath = oPath;
 	}
 	
 	public String getJobId() {
@@ -39,5 +44,13 @@ public class Task implements Serializable{
 	
 	public String getTaskId(){
 		return taskId;
+	}
+	
+	public int getNumPartitions(){
+		return numPartitions;
+	}
+	
+	public String getOutputPath(){
+		return outputPath;
 	}
 }

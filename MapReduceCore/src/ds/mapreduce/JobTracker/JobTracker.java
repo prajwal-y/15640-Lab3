@@ -1,6 +1,8 @@
 package ds.mapreduce.JobTracker;
 
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
@@ -17,7 +19,10 @@ public class JobTracker {
 	private static HashMap<String, ArrayList<Task>> assignedTasks = null;
 
 	public JobTracker() {
-
+		mapQueue = new HashMap<String, ArrayList<MapTask>>();
+		reduceQueue = new HashMap<String, ArrayList<ReduceTask>>();
+		jobQueue = new ArrayList<String>();
+		assignedTasks = new HashMap<String, ArrayList<Task>>();
 	}
 
 	/* Method to return task to idle task tracker based on locality of data
@@ -46,12 +51,20 @@ public class JobTracker {
 		}
 		if(!rQueue.isEmpty()){
 			for (Task task :rQueue){
+				if(task.getState() == TaskState.PENDING || task.getState() == TaskState.RUNNING
+						|| task.getState() == TaskState.FAILED)
+					mapsOver = false;
 				if(task.getState() == TaskState.PENDING){
 					task.setState(TaskState.RUNNING);
+					if(!assignedTasks.containsKey(host))
+						assignedTasks.put(host, new ArrayList<Task>());
+					assignedTasks.get(host).add(task);
 					return task;
-				}					 
+				}						 
 			}
 		}
+		//Maps and reduces done, remove from job queue
+		jobQueue.remove(0);
 		return null;
 	}
 	
@@ -84,9 +97,10 @@ public class JobTracker {
 			server = new ServerSocket(Constants.JOBTRACKER_PORT);
 			while (true) {
 				Socket client = server.accept();
-				JobTrackerRequestHandler handler = new JobTrackerRequestHandler(
-						client, this);
-				new Thread(handler).start();
+				ObjectOutputStream outStream = new ObjectOutputStream(client.getOutputStream());
+				ObjectInputStream inStream = new ObjectInputStream(client.getInputStream());
+				new JobTrackerRequestHandler(
+						client, this, outStream, inStream).start();
 			}
 		} catch (IOException e) {
 			// TODO Auto-generated catch block

@@ -6,12 +6,14 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 
-public class RecordReader {
+public class MapRecordReader {
 	String path;
 	long currentRecord;
 	BufferedReader fileReader;
 	
+	
 	private void openFile(){
+		//Use DFS to open file
 		File file = new File(path);
 		try {
 			BufferedReader fileReader = new BufferedReader(new FileReader(file));
@@ -21,7 +23,7 @@ public class RecordReader {
 		}
 	}
 	
-	public RecordReader(String p){
+	public MapRecordReader(String p){
 		path = p;
 		openFile();
 		currentRecord = 0;

@@ -4,10 +4,10 @@ import java.util.ArrayList;
 
 public class Reducer extends Thread {
 	public void reduce(String key, ArrayList<String> values,
-			OutputCollector collector) {
+			ReduceOutputCollector collector) {
 		String outputKey = key;
 		for (String value : values){
-			collector.write(outputKey, value);
+			collector.writeToBuffers(outputKey, value);
 		}
 		
 	}
@@ -16,11 +16,9 @@ public class Reducer extends Thread {
 		// Nothing here
 	}
 
-	public void run(RecordReader reader, String path) {
+	public void run(ReduceRecordReader reader, ReduceOutputCollector collector) {
 		String nextRecord;
-		OutputCollector collector = new OutputCollector(path); // TODO get
-																// location to
-																// write to
+		
 		String currentKey = null;
 		ArrayList<String> values = new ArrayList<String>();
 		try {
