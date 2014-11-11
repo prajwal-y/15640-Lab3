@@ -50,7 +50,9 @@ public class TaskTrackerRequestHandler extends Thread{
 			    className = className.replace('/', '.');
 			    Class c = cl.loadClass(className);
 			    if(c.isAssignableFrom(Class.forName("Mapper")) || c.isAssignableFrom(Class.forName("Reducer"))){
-			    	if(t.getTaskType() == TaskType.MAP)
+			    	if(t.getTaskType() == TaskType.MAP){
+			    		
+			    	}
 			    		
 			    }
 			}
