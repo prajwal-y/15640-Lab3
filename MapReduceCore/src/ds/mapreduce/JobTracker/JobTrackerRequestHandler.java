@@ -10,6 +10,7 @@ import java.util.UUID;
 import ds.mapreduce.Common.Command;
 import ds.mapreduce.Common.JobSubmission;
 import ds.mapreduce.Common.MRMessage;
+import ds.mapreduce.Common.TaskResult;
 import ds.mapreduce.Common.TaskType;
 
 public class JobTrackerRequestHandler extends Thread{
@@ -47,17 +48,20 @@ public class JobTrackerRequestHandler extends Thread{
 		String oPath = job.getOutputPath();
 		String jPath = job.getJarPath();
 		String jobId = UUID.randomUUID().toString();
+		int mapTaskCount = 1;
 		tracker.addJob(jobId);
 		ArrayList<InputSplit> splits = computeSplits(iPath);
 		for (InputSplit split : splits){
-			MapTask t = new MapTask(split, jobId, TaskState.PENDING);
+			MapTask t = new MapTask(split, jobId, TaskState.PENDING, 
+					TaskType.MAP, jPath, "m" + mapTaskCount++);
 			tracker.addMapTask(t);
 		}		
 		
 		//Add reduce tasks to queue as well. Get executed only after maps(how?)
 		int reducers = 10; //TODO Make configurable
 		for (int i = 0; i < 10; i++){
-			ReduceTask r = new ReduceTask(i+1, jobId, TaskState.PENDING);
+			ReduceTask r = new ReduceTask(i+1, jobId, TaskState.PENDING,
+					TaskType.REDUCE, jPath, "r" + (i+1));
 			tracker.addReduceTask(r);
 		}
 	}
@@ -84,6 +88,8 @@ public class JobTrackerRequestHandler extends Thread{
 					
 			}
 			if(msg.getCommand() == Command.COMPLETE){
+				TaskResult result = (TaskResult) msg.getPayload();
+				
 				//If map task? Get locations of map output?
 				//If reduce task?
 			}

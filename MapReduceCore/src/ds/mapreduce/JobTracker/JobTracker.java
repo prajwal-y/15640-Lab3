@@ -14,7 +14,7 @@ public class JobTracker {
 	private static HashMap<String, ArrayList<MapTask>> mapQueue = null;
 	private static HashMap<String, ArrayList<ReduceTask>> reduceQueue = null;
 	private static ArrayList<String> jobQueue = null;
-	
+	private static HashMap<String, ArrayList<Task>> assignedTasks = null;
 
 	public JobTracker() {
 
@@ -31,12 +31,15 @@ public class JobTracker {
 		ArrayList<ReduceTask> rQueue = reduceQueue.get(currentJob);
 		boolean mapsOver = true;
 		if(!mQueue.isEmpty()){
-			for (Task task :mQueue){
+			for (Task task : mQueue){
 				if(task.getState() == TaskState.PENDING || task.getState() == TaskState.RUNNING
 						|| task.getState() == TaskState.FAILED)
 					mapsOver = false;
 				if(task.getState() == TaskState.PENDING){
 					task.setState(TaskState.RUNNING);
+					if(!assignedTasks.containsKey(host))
+						assignedTasks.put(host, new ArrayList<Task>());
+					assignedTasks.get(host).add(task);
 					return task;
 				}					 
 			}

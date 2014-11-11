@@ -2,26 +2,31 @@ package ds.mapreduce.JobTracker;
 
 import ds.mapreduce.Common.TaskType;
 
-public class MapTask implements Task{
+public class MapTask extends Task{
 	private InputSplit split;
-	private String jobId;
-	private TaskState state;
 	
-	public MapTask(InputSplit s, String id, TaskState st){
-		s = split;
-		jobId = id;
-		state = st;
+	public MapTask(InputSplit s, String id, TaskState st, TaskType t, String jPath, String tId){
+		super(t, st, id, jPath, tId);
+		split = s;
 	}
 	
 	public String getJobId(){
-		return jobId;
+		return super.getJobId();
 	}
 	
 	public TaskState getState(){
-		return state;
+		return super.getState();
 	}
 	
 	public void setState(TaskState t) {
-		state = t;
+		super.setState(t);
+	}
+	
+	public TaskType getTaskType(){
+		return super.getTaskType();
+	}
+	
+	public String getJarPath(){
+		return super.getJarPath();
 	}
 }
