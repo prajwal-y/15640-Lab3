@@ -47,6 +47,10 @@ public class TaskTracker {
 		startHeartbeatThread();
 	}
 	
+	public void setIdle(Boolean idle){
+		isIdle = idle;
+	}
+	
 	public void startEventLoop() {
 		try {
 			server = new ServerSocket(Constants.TASKTRACKER_PORT);

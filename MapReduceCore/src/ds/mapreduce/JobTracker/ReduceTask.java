@@ -1,25 +1,31 @@
 package ds.mapreduce.JobTracker;
 
-public class ReduceTask implements Task{
+import ds.mapreduce.Common.TaskType;
+
+public class ReduceTask extends Task{
 	private int partitionId;
-	private String jobId;
-	private TaskState state;
 	
-	public ReduceTask(int id, String jId, TaskState s){
-		partitionId = id;
-		jobId = jId;
-		state = s;
+	public ReduceTask(int pId, String jId, TaskState s, TaskType t, String jPath, String tId){
+		super(t, s, jId, jPath, tId);
+		partitionId = pId;
 	}
-	
 	public String getJobId(){
-		return jobId;
+		return super.getJobId();
 	}
 	
 	public TaskState getState(){
-		return state;
+		return super.getState();
 	}
 
 	public void setState(TaskState t) {
-		state = t;
+		super.setState(t);
+	}
+
+	public TaskType getTaskType(){
+		return super.getTaskType();
+	}
+	
+	public String getJarPath(){
+		return super.getJarPath();
 	}
 }
