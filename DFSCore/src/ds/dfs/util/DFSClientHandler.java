@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
+import java.util.ArrayList;
 
 import ds.dfs.comm.DFSMessage;
 import ds.dfs.datanode.DataNode;
@@ -48,8 +49,21 @@ public class DFSClientHandler extends Thread {
 									+ fileList[fileList.length - 1]);
 				}
 				// NameNode.addFileToDFS((String)msg.getPayload());
-			} else if (msg.getCommand() == Command.FILETONAMENODE) {
-				// TODO:
+			} else if (msg.getCommand() == Command.GETFILEPARTS) {
+				String fileName = (String)msg.getPayload();
+				boolean found = false;
+				System.out.println("File in getfileparts is: " + fileName);
+				for(DFSFile file : NameNode.fileList) {
+					System.out.println("Entered list: " + file.fileName);
+					if(file.fileName.equals(fileName)) {
+						found = true;
+						System.out.println("File Found. Returning parts");
+						out.writeObject(new DFSMessage(Command.OK, new ArrayList<String>(file.partitionLoc.keySet())));
+						break;
+					}
+				}
+				if(!found)
+					out.writeObject(new DFSMessage(Command.OK, null));
 			} else if (msg.getCommand() == Command.LISTFILES) {
 				// TODO:
 			} else if (msg.getCommand() == Command.GETFILEDATA) {

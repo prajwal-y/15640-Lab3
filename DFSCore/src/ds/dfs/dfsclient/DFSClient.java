@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
+import java.util.ArrayList;
 
 import ds.dfs.comm.DFSMessage;
 import ds.dfs.util.Command;
@@ -16,6 +17,7 @@ import ds.dfs.util.FileSender;
 /**
  * 
  * This class is a utility class to access the DFS
+ * 
  * @author pyadapad and rjupadhy
  *
  */
@@ -25,6 +27,41 @@ public class DFSClient {
 
 	public DFSClient(String host) {
 		nameNodeHost = host;
+	}
+
+	/**
+	 * Returns all parts of a given file in DFS
+	 * 
+	 * @param dfsPath
+	 * @return
+	 */
+	public ArrayList<String> getFileParts(String dfsPath) {
+		ArrayList<String> fileParts = new ArrayList<String>();
+		try {
+			Socket client = new Socket(nameNodeHost, Constants.NAMENODE_PORT);
+			ObjectOutputStream outStream = new ObjectOutputStream(client.getOutputStream());
+			outStream.writeObject(new DFSMessage(Command.DFSCLIENT, ""));
+			ObjectInputStream inStream = new ObjectInputStream(client.getInputStream());
+			DFSMessage msg = (DFSMessage) inStream.readObject();
+			dfsPath = dfsPath.split("DFS://")[1];
+			if (msg.getCommand() == Command.OK) {
+				outStream.writeObject(new DFSMessage(Command.GETFILEPARTS, dfsPath));
+				DFSMessage message = (DFSMessage) inStream.readObject();
+				if (message != null) {
+					for (String s : (ArrayList<String>) message.getPayload()) {
+						fileParts.add(s);
+					}
+				}
+			}
+			client.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+			System.out.println("IOException: " + e.getMessage());
+		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
+			System.out.println("ClassNotFoundException: " + e.getMessage());
+		}
+		return fileParts;
 	}
 
 	/**
@@ -118,8 +155,12 @@ public class DFSClient {
 
 	public static void main(String[] args) {
 		DFSClient dfsClient = new DFSClient("127.0.0.1");
-		//dfsClient.copyToDFS("C:/Users/Prajwal/Desktop/input.txt", "DFS://", true);
-		dfsClient.copyToLocal("input.txt", "DFS://", "C:/Users/Prajwal/Desktop/DFS");
+		dfsClient.copyToDFS("C:/Users/Prajwal/Desktop/input.txt", "DFS://", true);
+		ArrayList<String> parts = dfsClient.getFileParts("DFS:///input.txt");
+		for(String p : parts)
+			System.out.println(p);
+		// dfsClient.copyToLocal("input.txt", "DFS://",
+		// "C:/Users/Prajwal/Desktop/DFS");
 	}
 
 }
