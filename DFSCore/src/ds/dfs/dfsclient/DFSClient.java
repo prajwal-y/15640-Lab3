@@ -1,7 +1,6 @@
 package ds.dfs.dfsclient;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -69,15 +68,67 @@ public class DFSClient {
 		return fileParts;
 	}
 
+	/**
+	 * Returns a list of all files in a given DFS directory
+	 * @param dfsDir
+	 * @return
+	 */
+	public ArrayList<String> listFilesinDirectory(String dfsDir) {
+		ArrayList<String> fileList = new ArrayList<String>();
+		try {
+			Socket client = new Socket(nameNodeHost, Constants.NAMENODE_PORT);
+			ObjectOutputStream outStream = new ObjectOutputStream(client.getOutputStream());
+			outStream.writeObject(new DFSMessage(Command.DFSCLIENT, ""));
+			ObjectInputStream inStream = new ObjectInputStream(client.getInputStream());
+			DFSMessage msg = (DFSMessage) inStream.readObject();
+			String[] dfsDirSplit = dfsDir.split("DFS://");
+			if(dfsDirSplit.length > 1)
+				dfsDir = dfsDir.split("DFS://")[1];
+			else
+				dfsDir = "/";
+			if (msg.getCommand() == Command.OK) {
+				outStream.writeObject(new DFSMessage(Command.GETFILELIST, dfsDir));
+				DFSMessage message = (DFSMessage) inStream.readObject();
+				if (message.getPayload() != null) {
+					for (String s : (ArrayList<String>) message.getPayload()) {
+						fileList.add(s);
+					}
+				}
+			}
+			client.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+			System.out.println("IOException: " + e.getMessage());
+		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
+			System.out.println("ClassNotFoundException: " + e.getMessage());
+		} catch (Exception e) {
+			e.printStackTrace();
+			System.out.println("Exception: " + e.getMessage());
+		}
+		return fileList;
+	}
+	
+	/**
+	 * Reads a file from DFS
+	 * @param dfsFile
+	 * @return
+	 */
 	public File openFile(String dfsFile) {
-		this.copyToLocal(dfsFile, "DFS://", "C:/Users/rohit/Desktop/DFS", true);
-		File file = new File("C:/Users/rohit/Desktop/DFS" + dfsFile);
+		this.copyToLocal(dfsFile, "DFS://", "C:/Users/Prajwal/Desktop/DFS", true);
+		File file = new File("C:/Users/Prajwal/Desktop/DFS" + dfsFile);
 		return file;
 	}
 
+	/**
+	 * Writes a file to DFS
+	 * @param dfsFolder
+	 * @param fileName
+	 * @param buffer
+	 */
 	public void writeFile(String dfsFolder, String fileName, ArrayList<String> buffer) {
 		File tempFile = null;
-		String tempFilePath = "C:/Users/rohit/Desktop/Datanode/tmp/" + fileName;
+		String tempFilePath = "C:/Users/Prajwal/Desktop/Datanode/tmp/" + fileName;
 		try {
 			tempFile = new File(tempFilePath);
 			final File parent_directory = tempFile.getParentFile();
@@ -130,7 +181,9 @@ public class DFSClient {
 						if (message.getCommand() == Command.OK) {
 							outStream.writeObject(new DFSMessage(Command.FILETOLOCAL, file));
 							System.out.println("Preparing to receive from DataNode");
-							new FileReceiver(localFilePath + "/" + file, client, outStream, inStream).start();
+							Thread t = new FileReceiver(localFilePath + "/" + file, client, outStream, inStream);
+							t.start();
+							t.join();
 						}
 					}
 				} else {
@@ -147,14 +200,16 @@ public class DFSClient {
 							if (message.getCommand() == Command.OK) {
 								outStream.writeObject(new DFSMessage(Command.FILETOLOCAL, partFile));
 								System.out.println("Preparing to receive from DataNode");
-								new FileReceiver(localFilePath + "/" + partFile, client, outStream, inStream).start();
+								Thread t = new FileReceiver(localFilePath + "/" + partFile, client, outStream, inStream);
+								t.start();
+								t.join();
 							}
 						}
 					}
 				}
-				// outStream.close();
-				// inStream.close();
-				// client.close();
+				 outStream.close();
+				 inStream.close();
+				 client.close();
 			}
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -162,6 +217,9 @@ public class DFSClient {
 		} catch (ClassNotFoundException e) {
 			e.printStackTrace();
 			System.out.println("ClassNotFoundException: " + e.getMessage());
+		} catch (Exception e) {
+			e.printStackTrace();
+			System.out.println("Exception: " + e.getMessage());
 		}
 	}
 
@@ -204,13 +262,13 @@ public class DFSClient {
 
 	public static void main(String[] args) {
 		DFSClient dfsClient = new DFSClient("127.0.0.1");
-		// dfsClient.copyToDFS("C:/Users/Prajwal/Desktop/input.txt", "DFS://",
+		//dfsClient.copyToDFS("C:/Users/Prajwal/Desktop/input.txt", "DFS://",
 		// true);
-		dfsClient.openFile("input.txt/input.txt_1");
-		/*
-		 * ArrayList<String> parts = dfsClient.getFileParts("DFS://input.txt");
-		 * for(String p : parts) System.out.println(p);
-		 */
+		//dfsClient.openFile("input.txt/input.txt_1");
+		
+		 ArrayList<String> parts = dfsClient.listFilesinDirectory("DFS://input.txt");
+		 for(String p : parts)
+			 System.out.println(p);
 		// dfsClient.copyToLocal("input.txt", "DFS://",
 		// "C:/Users/Prajwal/Desktop/DFS");
 	}

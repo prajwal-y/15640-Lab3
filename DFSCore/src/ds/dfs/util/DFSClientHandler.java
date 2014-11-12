@@ -60,8 +60,20 @@ public class DFSClientHandler extends Thread {
 				}
 				if (!found)
 					out.writeObject(new DFSMessage(Command.OK, null));
-			} else if (msg.getCommand() == Command.LISTFILES) {
-				// TODO:
+			} else if (msg.getCommand() == Command.GETFILELIST) {
+				ArrayList<String> files = new ArrayList<String>();
+				String fileDir = (String) msg.getPayload();
+				System.out.println("Filedir in GETFILELIST is: " + fileDir);
+				boolean found = false;
+				for (DFSFile d : NameNode.fileList) {
+					if (d.fileName.contains(fileDir)) {
+						for (String s : d.partitionLoc.keySet()) {
+							if(!files.contains(s))
+								files.add(s);
+						}
+					}
+				}
+				out.writeObject(new DFSMessage(Command.OK, files));
 			} else if (msg.getCommand() == Command.GETFILEDATA) {
 				String fileName = (String) msg.getPayload();
 				System.out.println("Filename in GetFileData is: " + fileName);
@@ -71,6 +83,7 @@ public class DFSClientHandler extends Thread {
 						found = true;
 						System.out.println("Found the file!");
 						out.writeObject(new DFSMessage(Command.FILEDATA, d));
+						out.flush();
 						break;
 					}
 				}
@@ -89,7 +102,7 @@ public class DFSClientHandler extends Thread {
 							break;
 						}
 					}
-					if(found)
+					if (found)
 						break;
 				}
 				if (!found)
