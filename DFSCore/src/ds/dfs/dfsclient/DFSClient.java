@@ -1,5 +1,6 @@
 package ds.dfs.dfsclient;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -64,10 +65,16 @@ public class DFSClient {
 		return fileParts;
 	}
 
+	public File openFile(String dfsFile) {
+		this.copyToLocal(dfsFile, "DFS://", "C:/Users/Prajwal/Desktop/DFS", true);
+		File file = new File("C:/Users/Prajwal/Desktop/DFS" + dfsFile);
+		return file;
+	}
+
 	/**
 	 * Copies the file from DFS to local machine
 	 */
-	public void copyToLocal(String file, String DFSfilePath, String localFilePath) {
+	public void copyToLocal(String file, String DFSfilePath, String localFilePath, boolean part) {
 		try {
 			Socket client = new Socket(nameNodeHost, Constants.NAMENODE_PORT);
 			ObjectOutputStream outStream = new ObjectOutputStream(client.getOutputStream());
@@ -80,33 +87,52 @@ public class DFSClient {
 			else
 				DFSfilePath = "";
 			if (msg.getCommand() == Command.OK) {
-				outStream.writeObject(new DFSMessage(Command.GETFILEDATA, DFSfilePath + "/" + file));
+				if(part)	//Get Part file
+					outStream.writeObject(new DFSMessage(Command.GETFILEPARTDATA, DFSfilePath + "/" + file));
+				else	//Get full file (All parts)
+					outStream.writeObject(new DFSMessage(Command.GETFILEDATA, DFSfilePath + "/" + file));
 				System.out.println(file);
 				DFSMessage dfsMsg = (DFSMessage) inStream.readObject();
-				DFSFile dfsFile = (DFSFile) dfsMsg.getPayload();
-				outStream.close();
-				inStream.close();
-				client.close();
-				if (dfsFile == null)
-					System.out.println("File not found in DFS");
+				if(part) {
+					ArrayList<String> partFileDataNodes = (ArrayList<String>)dfsMsg.getPayload();
+					if (partFileDataNodes == null)
+						System.out.println("File not found in DFS");
+					else {
+							client = new Socket(partFileDataNodes.get(0), Constants.DATANODE_PORT);
+							outStream = new ObjectOutputStream(client.getOutputStream());
+							outStream.writeObject(new DFSMessage(Command.DFSCLIENT, ""));
+							inStream = new ObjectInputStream(client.getInputStream());
+							DFSMessage message = (DFSMessage) inStream.readObject();
+							if (message.getCommand() == Command.OK) {
+								outStream.writeObject(new DFSMessage(Command.FILETOLOCAL, file));
+								System.out.println("Preparing to receive from DataNode");
+								new FileReceiver(localFilePath + "/" + file, client, outStream, inStream).start();
+							}
+						}
+				}
 				else {
-					for (String partFile : dfsFile.partitionLoc.keySet()) {
-						client = new Socket(dfsFile.partitionLoc.get(partFile).get(0), Constants.DATANODE_PORT);
-						outStream = new ObjectOutputStream(client.getOutputStream());
-						outStream.writeObject(new DFSMessage(Command.DFSCLIENT, ""));
-						inStream = new ObjectInputStream(client.getInputStream());
-						DFSMessage message = (DFSMessage) inStream.readObject();
-						if (message.getCommand() == Command.OK) {
-							outStream.writeObject(new DFSMessage(Command.FILETOLOCAL, partFile));
-							System.out.println("Preparing to receive from DataNode");
-							new FileReceiver(localFilePath + "/" + partFile, client, outStream, inStream).start();
+					DFSFile dfsFile = (DFSFile) dfsMsg.getPayload();
+					if (dfsFile == null)
+						System.out.println("File not found in DFS");
+					else {
+						for (String partFile : dfsFile.partitionLoc.keySet()) {
+							client = new Socket(dfsFile.partitionLoc.get(partFile).get(0), Constants.DATANODE_PORT);
+							outStream = new ObjectOutputStream(client.getOutputStream());
+							outStream.writeObject(new DFSMessage(Command.DFSCLIENT, ""));
+							inStream = new ObjectInputStream(client.getInputStream());
+							DFSMessage message = (DFSMessage) inStream.readObject();
+							if (message.getCommand() == Command.OK) {
+								outStream.writeObject(new DFSMessage(Command.FILETOLOCAL, partFile));
+								System.out.println("Preparing to receive from DataNode");
+								new FileReceiver(localFilePath + "/" + partFile, client, outStream, inStream).start();
+							}
 						}
 					}
 				}
-			} else {
-				System.out.println("Cannot copy file from DFS");
-			}
+				//outStream.close();
+				//inStream.close();
 			// client.close();
+			}
 		} catch (IOException e) {
 			e.printStackTrace();
 			System.out.println("IOException: " + e.getMessage());
@@ -155,10 +181,13 @@ public class DFSClient {
 
 	public static void main(String[] args) {
 		DFSClient dfsClient = new DFSClient("127.0.0.1");
-		dfsClient.copyToDFS("C:/Users/Prajwal/Desktop/input.txt", "DFS://", true);
-		ArrayList<String> parts = dfsClient.getFileParts("DFS:///input.txt");
-		for(String p : parts)
-			System.out.println(p);
+		// dfsClient.copyToDFS("C:/Users/Prajwal/Desktop/input.txt", "DFS://",
+		// true);
+		dfsClient.openFile("input.txt/input.txt_1");
+		/*
+		 * ArrayList<String> parts = dfsClient.getFileParts("DFS://input.txt");
+		 * for(String p : parts) System.out.println(p);
+		 */
 		// dfsClient.copyToLocal("input.txt", "DFS://",
 		// "C:/Users/Prajwal/Desktop/DFS");
 	}
