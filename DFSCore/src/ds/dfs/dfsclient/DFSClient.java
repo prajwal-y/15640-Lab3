@@ -1,6 +1,8 @@
 package ds.dfs.dfsclient;
 
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -45,7 +47,7 @@ public class DFSClient {
 			ObjectInputStream inStream = new ObjectInputStream(client.getInputStream());
 			DFSMessage msg = (DFSMessage) inStream.readObject();
 			dfsPath = dfsPath.split("DFS://")[1];
-			if(!dfsPath.contains("/"))
+			if (!dfsPath.contains("/"))
 				dfsPath = "/" + dfsPath;
 			if (msg.getCommand() == Command.OK) {
 				outStream.writeObject(new DFSMessage(Command.GETFILEPARTS, dfsPath));
@@ -68,9 +70,28 @@ public class DFSClient {
 	}
 
 	public File openFile(String dfsFile) {
-		this.copyToLocal(dfsFile, "DFS://", "C:/Users/Prajwal/Desktop/DFS", true);
-		File file = new File("C:/Users/Prajwal/Desktop/DFS" + dfsFile);
+		this.copyToLocal(dfsFile, "DFS://", "C:/Users/rohit/Desktop/DFS", true);
+		File file = new File("C:/Users/rohit/Desktop/DFS" + dfsFile);
 		return file;
+	}
+
+	public void writeFile(String dfsFolder, String fileName, ArrayList<String> buffer) {
+		File tempFile = null;
+		String tempFilePath = "C:/Users/rohit/Desktop/Datanode/tmp/" + fileName;
+		try {
+			tempFile = new File(tempFilePath);
+			final File parent_directory = tempFile.getParentFile();
+			if (null != parent_directory)
+				parent_directory.mkdirs();
+			FileWriter writer = new FileWriter(tempFile);
+			for (String str : buffer) {
+				writer.write(str);
+			}
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		this.copyToDFS(tempFilePath, dfsFolder, false);
 	}
 
 	/**
@@ -89,30 +110,30 @@ public class DFSClient {
 			else
 				DFSfilePath = "";
 			if (msg.getCommand() == Command.OK) {
-				if(part)	//Get Part file
+				if (part) // Get Part file
 					outStream.writeObject(new DFSMessage(Command.GETFILEPARTDATA, DFSfilePath + "/" + file));
-				else	//Get full file (All parts)
+				else
+					// Get full file (All parts)
 					outStream.writeObject(new DFSMessage(Command.GETFILEDATA, DFSfilePath + "/" + file));
 				System.out.println(file);
 				DFSMessage dfsMsg = (DFSMessage) inStream.readObject();
-				if(part) {
-					ArrayList<String> partFileDataNodes = (ArrayList<String>)dfsMsg.getPayload();
+				if (part) {
+					ArrayList<String> partFileDataNodes = (ArrayList<String>) dfsMsg.getPayload();
 					if (partFileDataNodes == null)
 						System.out.println("File not found in DFS");
 					else {
-							client = new Socket(partFileDataNodes.get(0), Constants.DATANODE_PORT);
-							outStream = new ObjectOutputStream(client.getOutputStream());
-							outStream.writeObject(new DFSMessage(Command.DFSCLIENT, ""));
-							inStream = new ObjectInputStream(client.getInputStream());
-							DFSMessage message = (DFSMessage) inStream.readObject();
-							if (message.getCommand() == Command.OK) {
-								outStream.writeObject(new DFSMessage(Command.FILETOLOCAL, file));
-								System.out.println("Preparing to receive from DataNode");
-								new FileReceiver(localFilePath + "/" + file, client, outStream, inStream).start();
-							}
+						client = new Socket(partFileDataNodes.get(0), Constants.DATANODE_PORT);
+						outStream = new ObjectOutputStream(client.getOutputStream());
+						outStream.writeObject(new DFSMessage(Command.DFSCLIENT, ""));
+						inStream = new ObjectInputStream(client.getInputStream());
+						DFSMessage message = (DFSMessage) inStream.readObject();
+						if (message.getCommand() == Command.OK) {
+							outStream.writeObject(new DFSMessage(Command.FILETOLOCAL, file));
+							System.out.println("Preparing to receive from DataNode");
+							new FileReceiver(localFilePath + "/" + file, client, outStream, inStream).start();
 						}
-				}
-				else {
+					}
+				} else {
 					DFSFile dfsFile = (DFSFile) dfsMsg.getPayload();
 					if (dfsFile == null)
 						System.out.println("File not found in DFS");
@@ -131,9 +152,9 @@ public class DFSClient {
 						}
 					}
 				}
-				//outStream.close();
-				//inStream.close();
-			// client.close();
+				// outStream.close();
+				// inStream.close();
+				// client.close();
 			}
 		} catch (IOException e) {
 			e.printStackTrace();
