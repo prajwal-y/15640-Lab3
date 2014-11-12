@@ -6,25 +6,38 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 
+import ds.dfs.dfsclient.DFSClient;
+
 public class MapRecordReader {
 	String path;
 	long currentRecord;
 	BufferedReader fileReader;
+	String nameNodeHost;
 	
 	
 	private void openFile(){
-		//Use DFS to open file
-		File file = new File(path);
+		DFSClient dfsClient = new DFSClient(nameNodeHost);
+		File file = null;
 		try {
-			BufferedReader fileReader = new BufferedReader(new FileReader(file));
+			file = dfsClient.openFile(path, true);
+		} catch (ClassNotFoundException e1) {
+			e1.printStackTrace();
+		} catch (IOException e1) {
+			e1.printStackTrace();
+		} catch (InterruptedException e1) {
+			e1.printStackTrace();
+		}
+		try {
+			fileReader = new BufferedReader(new FileReader(file));
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
 	
-	public MapRecordReader(String p){
+	public MapRecordReader(String p, String nNodeHost){
 		path = p;
+		nameNodeHost = nNodeHost;
 		openFile();
 		currentRecord = 0;
 	}

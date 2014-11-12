@@ -9,6 +9,7 @@ import java.util.UUID;
 
 import ds.dfs.dfsclient.DFSClient;
 import ds.mapreduce.Common.Command;
+import ds.mapreduce.Common.Constants;
 import ds.mapreduce.Common.JobSubmission;
 import ds.mapreduce.Common.MRMessage;
 import ds.mapreduce.Common.TaskResult;
@@ -20,15 +21,14 @@ public class JobTrackerRequestHandler extends Thread {
 	private ObjectOutputStream outStream = null;
 	private JobTracker tracker = null;
 
-	public JobTrackerRequestHandler(Socket c, JobTracker t, ObjectOutputStream o, 
-			ObjectInputStream i) {
+	public JobTrackerRequestHandler(Socket c, JobTracker t) {
 		client = c;
 		tracker = t;
-		outStream = o;
-		inStream = i;
+		//outStream = o;
+		//inStream = i;
 	}
 
-	private ArrayList<InputSplit> computeSplits(String iPath) {
+	/*private ArrayList<InputSplit> computeSplits(String iPath) {
 		// Simple splitter splitting every 100 lines.
 		ArrayList<InputSplit> splits = new ArrayList<InputSplit>();
 		int fileSize = 1000; // TODO get from NN
@@ -46,7 +46,7 @@ public class JobTrackerRequestHandler extends Thread {
 			linesRemaining -= 100;
 		}
 		return splits;
-	}
+	}*/
 
 	/**
 	 * When user submits a job, divide the work into maps and reduces and add it
@@ -63,10 +63,9 @@ public class JobTrackerRequestHandler extends Thread {
 		tracker.addJob(jobId);
 		DFSClient dfsClient = new DFSClient("127.0.0.1"); 
 		ArrayList<InputSplit> splits = new ArrayList<InputSplit>();
-		//ArrayList<String> parts = dfsClient.getFileParts(iPath);
-		ArrayList<String> parts = new ArrayList<String>();
+		ArrayList<String> parts = dfsClient.getFileParts(iPath);
 		for (String part : parts) {
-			InputSplit split = new InputSplit(part, 0, 0);
+			InputSplit split = new InputSplit("DFS:/" + part);
 			splits.add(split);
 		}
 		int reducers = 10; // TODO Make configurable
@@ -77,7 +76,7 @@ public class JobTrackerRequestHandler extends Thread {
 			tracker.addMapTask(t);
 		}
 
-		// Add reduce tasks to queue as well. Get executed only after maps(how?)
+		// Add reduce tasks to queue as well. Get executed only after maps
 		for (int i = 0; i < 10; i++) {
 			ReduceTask r = new ReduceTask(i + 1, jobId, TaskState.PENDING,
 					TaskType.REDUCE, jPath, "r" + (i + 1), reducers, oPath);
@@ -88,8 +87,8 @@ public class JobTrackerRequestHandler extends Thread {
 	@Override
 	public void run() {
 		try {
-			//outStream = new ObjectOutputStream(client.getOutputStream());
-			//inStream = new ObjectInputStream(client.getInputStream());
+			outStream = new ObjectOutputStream(client.getOutputStream());
+			inStream = new ObjectInputStream(client.getInputStream());
 			MRMessage msg = (MRMessage) inStream.readObject();
 			if (msg.getCommand() == Command.SUBMIT) {
 				System.out.println("Received a submit command");
@@ -98,19 +97,24 @@ public class JobTrackerRequestHandler extends Thread {
 			if (msg.getCommand() == Command.HEARTBEAT) {
 				// Mark as healthy
 				Boolean isIdle = (Boolean) msg.getPayload();
+				//System.out.println("Received heartbeat from jobtrcker");
 				if (isIdle) {
-					Task task = tracker.assignTask(client.getInetAddress()
-							.getHostName().toString());
+					String hostname = client.getInetAddress()
+							.getHostName().toString();
+					Task task = tracker.assignTask(hostname);
 					if (task != null) {
+						Socket tasktrackerSocket = new Socket(hostname, Constants.TASKTRACKER_PORT);
+						ObjectOutputStream taskOutStream = new ObjectOutputStream(tasktrackerSocket.getOutputStream());
 						MRMessage taskMsg = new MRMessage(Command.TASK, task);
-						outStream.writeObject(taskMsg);
+						taskOutStream.writeObject(taskMsg);
+						tasktrackerSocket.close();
 					}
 				}
 
 			}
 			if (msg.getCommand() == Command.COMPLETE) {
 				TaskResult result = (TaskResult) msg.getPayload();
-
+				tracker.markTaskAsComplete(result);
 				// If map task? Get locations of map output?
 				// If reduce task?
 			}

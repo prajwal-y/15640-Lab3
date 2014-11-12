@@ -9,6 +9,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 import ds.mapreduce.Common.Constants;
+import ds.mapreduce.Common.TaskResult;
+import ds.mapreduce.Common.TaskType;
 
 public class JobTracker {
 
@@ -35,7 +37,7 @@ public class JobTracker {
 		ArrayList<MapTask> mQueue = mapQueue.get(currentJob);
 		ArrayList<ReduceTask> rQueue = reduceQueue.get(currentJob);
 		boolean mapsOver = true;
-		if(!mQueue.isEmpty()){
+		if((mQueue != null) && (!mQueue.isEmpty())){
 			for (Task task : mQueue){
 				if(task.getState() == TaskState.PENDING || task.getState() == TaskState.RUNNING
 						|| task.getState() == TaskState.FAILED)
@@ -49,7 +51,7 @@ public class JobTracker {
 				}					 
 			}
 		}
-		if(!rQueue.isEmpty()){
+		if((rQueue != null) && (!rQueue.isEmpty())){
 			for (Task task :rQueue){
 				if(task.getState() == TaskState.PENDING || task.getState() == TaskState.RUNNING
 						|| task.getState() == TaskState.FAILED)
@@ -96,15 +98,31 @@ public class JobTracker {
 		try {
 			server = new ServerSocket(Constants.JOBTRACKER_PORT);
 			while (true) {
-				Socket client = server.accept();
-				ObjectOutputStream outStream = new ObjectOutputStream(client.getOutputStream());
-				ObjectInputStream inStream = new ObjectInputStream(client.getInputStream());
+				Socket client = server.accept();				
 				new JobTrackerRequestHandler(
-						client, this, outStream, inStream).start();
+						client, this).start();
 			}
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+		}
+	}
+
+	public void markTaskAsComplete(TaskResult result) {
+		String jobId = result.getJobId();
+		String taskId = result.getTaskId();
+		TaskType type = result.getType();
+		if (type == TaskType.MAP){
+			for(MapTask task: mapQueue.get(jobId)){
+				if(task.getTaskId().equals(taskId))
+					task.setState(TaskState.COMPLETED);
+			}
+		}
+		else if (type == TaskType.REDUCE){
+			for(ReduceTask task: reduceQueue.get(jobId)){
+				if(task.getTaskId().equals(taskId))
+					task.setState(TaskState.COMPLETED);
+			}
 		}
 	}
 }
