@@ -45,6 +45,8 @@ public class DFSClient {
 			ObjectInputStream inStream = new ObjectInputStream(client.getInputStream());
 			DFSMessage msg = (DFSMessage) inStream.readObject();
 			dfsPath = dfsPath.split("DFS://")[1];
+			if(!dfsPath.contains("/"))
+				dfsPath = "/" + dfsPath;
 			if (msg.getCommand() == Command.OK) {
 				outStream.writeObject(new DFSMessage(Command.GETFILEPARTS, dfsPath));
 				DFSMessage message = (DFSMessage) inStream.readObject();
