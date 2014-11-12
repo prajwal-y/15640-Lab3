@@ -5,11 +5,29 @@ import ds.mapreduce.JobTracker.TaskState;
 public class TaskResult {
 	private TaskType type;
 	private TaskState state;
-	private String outputLocation;
+	private String jobId;
+	private String taskId;
 	
-	public TaskResult(TaskType t, TaskState s, String output){
+	public TaskType getType() {
+		return type;
+	}
+
+	public TaskState getState() {
+		return state;
+	}
+
+	public String getJobId() {
+		return jobId;
+	}
+
+	public String getTaskId() {
+		return taskId;
+	}
+
+	public TaskResult(TaskType t, TaskState s, String jId, String tId){
 		type = t;
 		state = s;
-		output = outputLocation;
+		jobId = jId;
+		taskId = tId;
 	}
 }

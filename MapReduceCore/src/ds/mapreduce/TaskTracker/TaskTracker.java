@@ -17,6 +17,7 @@ public class TaskTracker {
 	private static ServerSocket server = null;
 	private static String jobTrackerHostName;
 	private static Boolean isIdle;
+	private static String nameNodeHost;
 	
 	private static void startHeartbeatThread(){
 		ScheduledExecutorService exec = Executors.newSingleThreadScheduledExecutor();
@@ -29,6 +30,7 @@ public class TaskTracker {
 						client.getOutputStream());
 				
 				MRMessage msg = new MRMessage(Command.HEARTBEAT, isIdle);
+				//System.out.println("Sent heartbeat to jobtracker");
 				outStream.writeObject(msg);
 			} catch (UnknownHostException e) {
 				// TODO Auto-generated catch block
@@ -41,14 +43,19 @@ public class TaskTracker {
 		}, 0, 5, TimeUnit.SECONDS);
 	}
 	
-	public TaskTracker(String jTrackerHostName) {
+	public TaskTracker(String jTrackerHostName, String nNodeHost) {
 		jobTrackerHostName = jTrackerHostName;
+		nameNodeHost = nNodeHost;
 		isIdle = true;
 		startHeartbeatThread();
 	}
 	
 	public void setIdle(Boolean idle){
 		isIdle = idle;
+	}
+	
+	public String getNameNode(){
+		return nameNodeHost;
 	}
 	
 	public void startEventLoop() {

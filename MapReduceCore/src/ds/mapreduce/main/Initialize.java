@@ -61,7 +61,7 @@ public class Initialize {
 			System.out.println("This machine is a TaskTracker");
 			System.out.println("Starting TaskTracker...");
 			System.out.println("TaskTracker started");
-			TaskTracker tTracker = new TaskTracker(jobTrackerHostName);
+			TaskTracker tTracker = new TaskTracker(jobTrackerHostName, "127.0.0.1");
 			tTracker.startEventLoop();
 		}
 	}
