@@ -5,6 +5,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.HashMap;
 
 import ds.dfs.comm.DFSMessage;
 import ds.dfs.datanode.DataNode;
@@ -42,7 +43,23 @@ public class DFSClientHandler extends Thread {
 					NameNode.splitAndTransferFile(fileName, dfsFolder);
 				else {
 					String[] fileList = tempFilePath.split("/");
-					NameNode.sendFilesToDataNodes(tempFilePath, fileList[fileList.length - 1] + "/" + fileList[fileList.length - 1]);
+					//Add to NameNode.filelist
+					ArrayList<String> dataNodeList = new ArrayList<String>();
+					for (String dn : NameNode.dataNodes.keySet()) {
+						dataNodeList.add(NameNode.dataNodes.get(dn).host);
+					}
+					HashMap<String, ArrayList<String>> fileMap = new HashMap<String, ArrayList<String>>();
+					fileMap.put(
+							dfsFolder + "/" + fileList[fileList.length - 1],
+							dataNodeList);
+					String dfsFileName = null;
+					if(dfsFolder.equals(""))
+						dfsFileName = fileList[fileList.length - 1];
+					else
+						dfsFileName = dfsFolder + "/" + fileList[fileList.length - 1];
+					DFSFile dfsFile = new DFSFile(dfsFileName, 0, fileMap);
+					NameNode.fileList.add(dfsFile);
+					NameNode.sendFilesToDataNodes(tempFilePath, dfsFolder + "/" + fileList[fileList.length - 1]);
 				}
 				// NameNode.addFileToDFS((String)msg.getPayload());
 			} else if (msg.getCommand() == Command.GETFILEPARTS) {
@@ -79,6 +96,7 @@ public class DFSClientHandler extends Thread {
 				System.out.println("Filename in GetFileData is: " + fileName);
 				boolean found = false;
 				for (DFSFile d : NameNode.fileList) {
+					System.out.println("GetFileData: " + d.fileName);
 					if (d.fileName.equals(fileName)) {
 						found = true;
 						System.out.println("Found the file!");

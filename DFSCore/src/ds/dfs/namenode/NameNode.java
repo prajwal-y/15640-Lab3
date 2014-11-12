@@ -26,7 +26,7 @@ import ds.dfs.util.FileSender;
 
 public class NameNode extends Thread {
 
-	private static HashMap<String, DataNodeMetadata> dataNodes = new HashMap<String, DataNodeMetadata>();
+	public static HashMap<String, DataNodeMetadata> dataNodes = new HashMap<String, DataNodeMetadata>();
 	public static ArrayList<DFSFile> fileList = new ArrayList<DFSFile>();
 	private static ServerSocket server = null;
 	public static String DFS_ROOT;
@@ -66,6 +66,14 @@ public class NameNode extends Thread {
 				myFile.delete();
 			}
 		}
+	}
+	
+	/**
+	 * TODO:
+	 * @param fileName
+	 */
+	public static void addToFileList() {
+		
 	}
 
 	/**
