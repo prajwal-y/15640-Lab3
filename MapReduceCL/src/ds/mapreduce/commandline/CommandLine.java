@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.net.UnknownHostException;
@@ -21,7 +22,7 @@ public class CommandLine {
 	private static String nameNodeHostName;
 	
 	private static void parseConfigFile() {
-		File config = new File("mr.xml");
+		File config = new File("C:\\Users\\rohit\\Desktop\\mr.xml");
 		String line;
 		HashMap<String, String> configValues = new HashMap<String, String>();
 		try {
@@ -100,6 +101,7 @@ public class CommandLine {
 				Socket jSocket = new Socket(jobTrackerHostName, Constants.JOBTRACKER_PORT);
 				MRMessage msg = new MRMessage(Command.SUBMIT, submission);
 				ObjectOutputStream out = new ObjectOutputStream(jSocket.getOutputStream());
+				ObjectInputStream in = new ObjectInputStream(arg0)
 				out.writeObject(msg);
 				
 			} catch (UnknownHostException e) {
