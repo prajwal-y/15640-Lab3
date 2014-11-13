@@ -30,13 +30,12 @@ public class TaskTracker {
 						client.getOutputStream());
 				
 				MRMessage msg = new MRMessage(Command.HEARTBEAT, isIdle);
-				//System.out.println("Sent heartbeat to jobtracker");
 				outStream.writeObject(msg);
+				//outStream.close();
+				//client.close();
 			} catch (UnknownHostException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		  }
@@ -52,6 +51,10 @@ public class TaskTracker {
 	
 	public void setIdle(Boolean idle){
 		isIdle = idle;
+	}
+	
+	public String getJobTracker(){
+		return jobTrackerHostName;
 	}
 	
 	public String getNameNode(){

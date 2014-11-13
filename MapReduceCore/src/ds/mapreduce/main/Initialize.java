@@ -1,67 +1,58 @@
 package ds.mapreduce.main;
+
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.IOException;
-
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
-import org.xml.sax.SAXException;
+import java.util.HashMap;
 
 import ds.mapreduce.JobTracker.JobTracker;
 import ds.mapreduce.TaskTracker.TaskTracker;
 
 public class Initialize {
 	private static String jobTrackerHostName;
-	private static String currentHostName;
+	private static String nameNodeHostName;
 
 	private static void parseConfigFile() {
-		Document doc = null;
+		File config = new File("C:/Users/rohit/Desktop/mr.xml");
+		String line;
+		HashMap<String, String> configValues = new HashMap<String, String>();
 		try {
-			File config = new File("/usr/local/mr.xml");
-			DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-			DocumentBuilder db = dbf.newDocumentBuilder();
-			doc = db.parse(config);
-			doc.getDocumentElement().normalize();
-		} catch (ParserConfigurationException e) {
-			System.out.println(e.getMessage());
-		} catch (IOException e) {
-			System.out.println(e.getMessage());
-		} catch (SAXException e) {
-			System.out.println(e.getMessage());
-		}
-		NodeList nodeLst = doc.getElementsByTagName("jobtracker");
-		jobTrackerHostName = nodeLst.item(0).getNodeValue();
-		
-	}
-
-	public static void main(String[] args) {
-		//parseConfigFile();
-		try {
-			currentHostName = Runtime.getRuntime().exec("hostname").getOutputStream().toString();
-			System.out.println("Current host is: " + currentHostName);
+			BufferedReader fileReader = new BufferedReader(new FileReader(
+					config));
+			while ((line = fileReader.readLine()) != null) {
+				String[] kv = line.split("=");
+				String key = kv[0];
+				String value = kv[1];
+				configValues.put(key, value);
+			}
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		jobTrackerHostName = configValues.get("JOBTRACKERHOST");
+		nameNodeHostName = configValues.get("NAMENODEHOST");
+	}
+
+	public static void main(String[] args) {
+		parseConfigFile();
 		
-		//if(currentHostName.equals(jobTrackerHostName)){
-		if(args[0].equals("jobtracker")){
+		if (args[0].equals("-jobtracker")) {
 			System.out.println("This machine is the JobTracker");
 			System.out.println("Starting JobTracker...");
 			System.out.println("JobTracker started");
-			JobTracker jTracker = new JobTracker();
+			JobTracker jTracker = new JobTracker(nameNodeHostName);
 			jTracker.startEventLoop();
-		}
-		else{
+		} else {
 			System.out.println("This machine is a TaskTracker");
 			System.out.println("Starting TaskTracker...");
 			System.out.println("TaskTracker started");
-			TaskTracker tTracker = new TaskTracker(jobTrackerHostName, "127.0.0.1");
+			TaskTracker tTracker = new TaskTracker(jobTrackerHostName,
+					nameNodeHostName);
 			tTracker.startEventLoop();
 		}
 	}

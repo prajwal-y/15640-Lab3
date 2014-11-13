@@ -1,8 +1,9 @@
 package ds.mapreduce.Common;
 
 import ds.mapreduce.JobTracker.TaskState;
+import java.io.Serializable;
 
-public class TaskResult {
+public class TaskResult implements Serializable{
 	private TaskType type;
 	private TaskState state;
 	private String jobId;
@@ -23,7 +24,7 @@ public class TaskResult {
 	public String getTaskId() {
 		return taskId;
 	}
-
+	
 	public TaskResult(TaskType t, TaskState s, String jId, String tId){
 		type = t;
 		state = s;
