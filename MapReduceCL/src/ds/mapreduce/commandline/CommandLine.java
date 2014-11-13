@@ -1,9 +1,14 @@
 package ds.mapreduce.commandline;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.util.HashMap;
 
 import ds.dfs.dfsclient.DFSClient;
 import ds.mapreduce.Common.Command;
@@ -12,6 +17,33 @@ import ds.mapreduce.Common.JobSubmission;
 import ds.mapreduce.Common.MRMessage;
 
 public class CommandLine {
+	private static String jobTrackerHostName;
+	private static String nameNodeHostName;
+	
+	private static void parseConfigFile() {
+		File config = new File("mr.xml");
+		String line;
+		HashMap<String, String> configValues = new HashMap<String, String>();
+		try {
+			BufferedReader fileReader = new BufferedReader(new FileReader(
+					config));
+			while ((line = fileReader.readLine()) != null) {
+				String[] kv = line.split("=");
+				String key = kv[0];
+				String value = kv[1];
+				configValues.put(key, value);
+			}
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		jobTrackerHostName = configValues.get("JOBTRACKERHOST");
+		nameNodeHostName = configValues.get("NAMENODEHOST");
+	}
+	
 	private static void printUsage(){
 		System.out.println("This is the command line program of MapReduce");
 		System.out.println("This system can be used to submit jobs and get status of jobs and cancel(?) jobs");
@@ -28,6 +60,7 @@ public class CommandLine {
 	}
 	
 	public static void main(String[] args){
+		parseConfigFile();
 		if(args.length == 0)
 			printUsage();
 		if(args[0].equals("-status")){
@@ -42,7 +75,7 @@ public class CommandLine {
 			String inputPath = args[1];
 			String outputPath = args[2];
 			String jarPath = args[3];
-			DFSClient client = new DFSClient("127.0.0.1");
+			DFSClient client = new DFSClient(nameNodeHostName);
 			try {
 				client.copyToDFS(inputPath, "DFS://", true);
 				client.copyToDFS(jarPath, "DFS://", false);
@@ -64,7 +97,7 @@ public class CommandLine {
 				String dfsJarPath = "DFS://" + pathSplit[pathSplit.length - 1];
 				JobSubmission submission = new JobSubmission(dfsInputPath, outputPath, dfsJarPath);
 				
-				Socket jSocket = new Socket("127.0.0.1", Constants.JOBTRACKER_PORT);
+				Socket jSocket = new Socket(jobTrackerHostName, Constants.JOBTRACKER_PORT);
 				MRMessage msg = new MRMessage(Command.SUBMIT, submission);
 				ObjectOutputStream out = new ObjectOutputStream(jSocket.getOutputStream());
 				out.writeObject(msg);
