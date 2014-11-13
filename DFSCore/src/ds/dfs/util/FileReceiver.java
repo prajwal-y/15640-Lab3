@@ -32,7 +32,7 @@ public class FileReceiver extends Thread {
 			//f.createNewFile();
 			byte[] bytes = (byte[])in.readObject();
 			Files.write(f.toPath(), bytes);
-			socket.close();
+			//socket.close();
 		} catch (IOException e) {
 			e.printStackTrace();
 			System.out.println("IOException occurred: " + e.getMessage());

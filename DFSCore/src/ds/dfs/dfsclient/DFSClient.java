@@ -41,6 +41,7 @@ public class DFSClient {
 	public ArrayList<String> getFileParts(String dfsPath) {
 		ArrayList<String> fileParts = new ArrayList<String>();
 		try {
+			System.out.println("GetFileParts: " + dfsPath);
 			Socket client = new Socket(nameNodeHost, Constants.NAMENODE_PORT);
 			ObjectOutputStream outStream = new ObjectOutputStream(client.getOutputStream());
 			outStream.writeObject(new DFSMessage(Command.DFSCLIENT, ""));
@@ -114,7 +115,7 @@ public class DFSClient {
 	 */
 	public File openFile(String dfsFile, boolean isPart) throws ClassNotFoundException, IOException, InterruptedException {
 		String[] split = dfsFile.split("DFS://");
-		String localFile = this.copyToLocal(split[1], "DFS://", "C:/Users/rohit/Desktop/DFS", isPart);
+		String localFile = this.copyToLocal(split[1], "DFS://", Constants.TEMP_FOLDER, isPart);
 		File file = new File(localFile);
 		return file;
 	}
@@ -127,10 +128,11 @@ public class DFSClient {
 	 * @param buffer
 	 * @throws IOException
 	 * @throws ClassNotFoundException
+	 * @throws InterruptedException 
 	 */
-	public void writeFile(String dfsFolder, String fileName, ArrayList<String> buffer) throws IOException, ClassNotFoundException {
+	public void writeFile(String dfsFolder, String fileName, ArrayList<String> buffer) throws IOException, ClassNotFoundException, InterruptedException {
 		File tempFile = null;
-		String tempFilePath = "C:/Users/rohit/Desktop/Datanode/tmp/" + fileName;
+		String tempFilePath = Constants.TEMP_FOLDER + fileName;
 		tempFile = new File(tempFilePath);
 		final File parent_directory = tempFile.getParentFile();
 		if (null != parent_directory)
@@ -233,8 +235,9 @@ public class DFSClient {
 	 * @param split
 	 * @throws IOException
 	 * @throws ClassNotFoundException
+	 * @throws InterruptedException 
 	 */
-	public void copyToDFS(String file, String DFSfilePath, boolean split) throws IOException, ClassNotFoundException {
+	public void copyToDFS(String file, String DFSfilePath, boolean split) throws IOException, ClassNotFoundException, InterruptedException {
 		Socket client = new Socket(nameNodeHost, Constants.NAMENODE_PORT);
 		ObjectOutputStream outStream = new ObjectOutputStream(client.getOutputStream());
 		outStream.writeObject(new DFSMessage(Command.DFSCLIENT, ""));
@@ -249,7 +252,13 @@ public class DFSClient {
 			String[] fileSplit = file.split("/");
 			FileObject fo = new FileObject(fileSplit[fileSplit.length - 1], DFSfilePath, split);
 			outStream.writeObject(new DFSMessage(Command.FILETODFS, fo));
-			new FileSender(file, client, inStream, outStream).start();
+			Thread t = new FileSender(file, client, inStream, outStream);
+			t.start();
+			t.join();
+			DFSMessage m = (DFSMessage)inStream.readObject();
+			if(m.getCommand() == Command.OK) {
+				System.out.println("File copied to DFS");
+			}
 		} else {
 			System.out.println("Cannot copy file to DFS");
 		}

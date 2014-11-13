@@ -39,8 +39,10 @@ public class DFSClientHandler extends Thread {
 				Thread thread = (Thread) new FileReceiver(tempFilePath, socket, out, in);
 				thread.start();
 				thread.join();
-				if (fo.isSplittable)
+				if (fo.isSplittable) {
 					NameNode.splitAndTransferFile(fileName, dfsFolder);
+					out.writeObject(new DFSMessage(Command.OK, ""));
+				}
 				else {
 					String[] fileList = tempFilePath.split("/");
 					//Add to NameNode.filelist
@@ -60,6 +62,7 @@ public class DFSClientHandler extends Thread {
 					DFSFile dfsFile = new DFSFile(dfsFileName, 0, fileMap);
 					NameNode.fileList.add(dfsFile);
 					NameNode.sendFilesToDataNodes(tempFilePath, dfsFolder + "/" + fileList[fileList.length - 1]);
+					out.writeObject(new DFSMessage(Command.OK, ""));
 				}
 				// NameNode.addFileToDFS((String)msg.getPayload());
 			} else if (msg.getCommand() == Command.GETFILEPARTS) {
@@ -75,8 +78,10 @@ public class DFSClientHandler extends Thread {
 						break;
 					}
 				}
-				if (!found)
+				if (!found) {
+					System.out.println("File " + fileName + " not found!!");
 					out.writeObject(new DFSMessage(Command.OK, null));
+				}
 			} else if (msg.getCommand() == Command.GETFILELIST) {
 				ArrayList<String> files = new ArrayList<String>();
 				String fileDir = (String) msg.getPayload();

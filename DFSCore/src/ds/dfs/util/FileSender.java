@@ -29,9 +29,10 @@ public class FileSender extends Thread {
 			File f = new File(file);
 			byte[] content = Files.readAllBytes(f.toPath());
 			objOut.writeObject(content);
-			objOut.close();
-			objIn.close();
-			socket.close();
+			objOut.flush();
+			//objOut.close();
+			//objIn.close();
+			//socket.close();
 		} catch (IOException e) {
 			e.printStackTrace();
 			System.out.println("IOException occurred: " + e.getMessage());

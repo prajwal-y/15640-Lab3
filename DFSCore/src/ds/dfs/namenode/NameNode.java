@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.lang.Thread;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
@@ -193,9 +194,13 @@ public class NameNode extends Thread {
 				if (((DFSMessage) in.readObject()).getCommand() == Command.OK) {
 					out.writeObject(new DFSMessage(Command.CREATE, dataFileName));
 					out.flush();
-					if (((DFSMessage) in.readObject()).getCommand() == Command.OK)
+					if (((DFSMessage) in.readObject()).getCommand() == Command.OK) {
 						// Initiate sending file
-						new FileSender(file, socket, in, out).start();
+						Thread ts = new FileSender(file, socket, in, out);
+						ts.start();
+						ts.join();
+						socket.close();
+					}
 				}
 			} catch (UnknownHostException e) {
 				System.out.println("UnknownHostException: " + e.getMessage());
@@ -204,6 +209,9 @@ public class NameNode extends Thread {
 				System.out.println("IOException: " + e.getMessage());
 			} catch (ClassNotFoundException e) {
 				System.out.println("IOException: " + e.getMessage());
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
 			}
 		}
 	}
