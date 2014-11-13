@@ -43,6 +43,8 @@ public class Reducer extends Thread {
 					values.add(value);
 				}
 			}
+			if(currentKey != null)
+				reduce(currentKey, values, collector);
 			collector.flush();
 		} finally {
 			cleanup();

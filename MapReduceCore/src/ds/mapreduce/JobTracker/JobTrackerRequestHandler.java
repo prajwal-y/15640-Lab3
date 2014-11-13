@@ -24,30 +24,8 @@ public class JobTrackerRequestHandler extends Thread {
 	public JobTrackerRequestHandler(Socket c, JobTracker t) {
 		client = c;
 		tracker = t;
-		//outStream = o;
-		//inStream = i;
 	}
-
-	/*private ArrayList<InputSplit> computeSplits(String iPath) {
-		// Simple splitter splitting every 100 lines.
-		ArrayList<InputSplit> splits = new ArrayList<InputSplit>();
-		int fileSize = 1000; // TODO get from NN
-		int linesRemaining = fileSize;
-
-		while (linesRemaining > 0) {
-			InputSplit split;
-			if (linesRemaining < 100) {
-				split = new InputSplit(iPath, (fileSize - linesRemaining),
-						linesRemaining);
-				splits.add(split);
-				break;
-			}
-			split = new InputSplit(iPath, (fileSize - linesRemaining), 100);
-			linesRemaining -= 100;
-		}
-		return splits;
-	}*/
-
+	
 	/**
 	 * When user submits a job, divide the work into maps and reduces and add it
 	 * to our task queues(map/reduce).
@@ -61,7 +39,7 @@ public class JobTrackerRequestHandler extends Thread {
 		String jobId = UUID.randomUUID().toString();
 		int mapTaskCount = 1;
 		tracker.addJob(jobId);
-		DFSClient dfsClient = new DFSClient("127.0.0.1"); 
+		DFSClient dfsClient = new DFSClient(tracker.getNameNode()); 
 		ArrayList<InputSplit> splits = new ArrayList<InputSplit>();
 		ArrayList<String> parts = dfsClient.getFileParts(iPath);
 		for (String part : parts) {
@@ -78,8 +56,8 @@ public class JobTrackerRequestHandler extends Thread {
 
 		// Add reduce tasks to queue as well. Get executed only after maps
 		for (int i = 0; i < 10; i++) {
-			ReduceTask r = new ReduceTask(i + 1, jobId, TaskState.PENDING,
-					TaskType.REDUCE, jPath, "r" + (i + 1), reducers, oPath);
+			ReduceTask r = new ReduceTask(i, jobId, TaskState.PENDING,
+					TaskType.REDUCE, jPath, "r" + i, reducers, oPath);
 			tracker.addReduceTask(r);
 		}
 	}
@@ -95,35 +73,32 @@ public class JobTrackerRequestHandler extends Thread {
 				addJob((JobSubmission) msg.getPayload());
 			}
 			if (msg.getCommand() == Command.HEARTBEAT) {
-				// Mark as healthy
+				String hostname = client.getInetAddress()
+					.getHostName().toString();
+				tracker.setAlive(hostname);
 				Boolean isIdle = (Boolean) msg.getPayload();
 				//System.out.println("Received heartbeat from jobtrcker");
-				if (isIdle) {
-					String hostname = client.getInetAddress()
-							.getHostName().toString();
+				if (isIdle) {					
 					Task task = tracker.assignTask(hostname);
 					if (task != null) {
 						Socket tasktrackerSocket = new Socket(hostname, Constants.TASKTRACKER_PORT);
 						ObjectOutputStream taskOutStream = new ObjectOutputStream(tasktrackerSocket.getOutputStream());
 						MRMessage taskMsg = new MRMessage(Command.TASK, task);
 						taskOutStream.writeObject(taskMsg);
-						tasktrackerSocket.close();
+						//tasktrackerSocket.close();
 					}
 				}
-
 			}
-			if (msg.getCommand() == Command.COMPLETE) {
+			if (msg.getCommand() == Command.JOBSTATUS) {
+				String hostname = client.getInetAddress()
+						.getHostName().toString();
 				TaskResult result = (TaskResult) msg.getPayload();
-				tracker.markTaskAsComplete(result);
-				// If map task? Get locations of map output?
-				// If reduce task?
+				tracker.markTask(result, hostname);
 			}
-			client.close();
+			//client.close();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (ClassNotFoundException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 

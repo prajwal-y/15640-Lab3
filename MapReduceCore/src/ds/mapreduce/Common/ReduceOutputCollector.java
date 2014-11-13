@@ -21,17 +21,21 @@ public class ReduceOutputCollector {
 	
 	public void writeToBuffers(String key, String value) {
 		//Create buffers for each partition
-		buffer.add(key + " " + value);
+		buffer.add(key + " " + value + "\n");
 	}
 	
 	public void flush(){
 		//DFS copy file to DFS
 		DFSClient dfsClient = new DFSClient(nameNodeHost);
 		try {
-			dfsClient.writeFile(outputPath, taskId, buffer);
+			if(!buffer.isEmpty())
+				dfsClient.writeFile(outputPath, taskId, buffer);
 		} catch (ClassNotFoundException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
+			e.printStackTrace();
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}

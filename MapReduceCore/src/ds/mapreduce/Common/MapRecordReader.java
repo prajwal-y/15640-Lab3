@@ -30,7 +30,6 @@ public class MapRecordReader {
 		try {
 			fileReader = new BufferedReader(new FileReader(file));
 		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
@@ -46,8 +45,8 @@ public class MapRecordReader {
 		String record = null;
 		try {
 			record = fileReader.readLine();
+			System.out.println(record);
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		currentRecord++;
