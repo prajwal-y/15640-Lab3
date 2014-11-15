@@ -22,7 +22,7 @@ public class CommandLine {
 	private static String nameNodeHostName;
 	
 	private static void parseConfigFile() {
-		File config = new File("C:\\Users\\rohit\\Desktop\\mr.xml");
+		File config = new File("mr.xml");
 		String line;
 		HashMap<String, String> configValues = new HashMap<String, String>();
 		try {
@@ -101,13 +101,17 @@ public class CommandLine {
 				Socket jSocket = new Socket(jobTrackerHostName, Constants.JOBTRACKER_PORT);
 				MRMessage msg = new MRMessage(Command.SUBMIT, submission);
 				ObjectOutputStream out = new ObjectOutputStream(jSocket.getOutputStream());
-				ObjectInputStream in = new ObjectInputStream(arg0)
 				out.writeObject(msg);
-				
+				out.flush();
+				ObjectInputStream in = new ObjectInputStream(jSocket.getInputStream());
+				in.readObject();
 			} catch (UnknownHostException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (ClassNotFoundException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
