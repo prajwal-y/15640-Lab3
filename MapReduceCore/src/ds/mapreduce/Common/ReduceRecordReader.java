@@ -75,9 +75,9 @@ public class ReduceRecordReader {
 		partitionId = pId;
 		jobId = jId;
 		sortedBuffer = new ArrayList<String>();
+		nameNodeHost = nNodeHost;
 		openAndSort();
 		currentRecord = 0;
-		nameNodeHost = nNodeHost;
 	}
 
 	public String nextRecord() {

@@ -187,7 +187,7 @@ public class JobTracker {
 		for (Task task : assignedTasks.get(hostName)) {
 			if (task.getTaskId().equals(taskId)
 					&& task.getJobId().equals(jobId)) {
-				assignedTasks.remove(task);
+				assignedTasks.get(hostName).remove(task);
 				break;
 			}
 		}

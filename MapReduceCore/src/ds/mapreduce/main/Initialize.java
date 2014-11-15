@@ -15,7 +15,7 @@ public class Initialize {
 	private static String nameNodeHostName;
 
 	private static void parseConfigFile() {
-		File config = new File("C:/Users/rohit/Desktop/mr.xml");
+		File config = new File("mr.xml");
 		String line;
 		HashMap<String, String> configValues = new HashMap<String, String>();
 		try {

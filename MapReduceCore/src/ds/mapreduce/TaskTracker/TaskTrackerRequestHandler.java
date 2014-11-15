@@ -4,8 +4,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
-import java.net.InetAddress;
 import java.net.Socket;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -86,6 +86,7 @@ public class TaskTrackerRequestHandler extends Thread {
 
 			while (e.hasMoreElements()) {
 				JarEntry je = (JarEntry) e.nextElement();
+				System.out.println(je.getName());
 				if (je.isDirectory() || !je.getName().endsWith(".class")) {
 					continue;
 				}
@@ -93,19 +94,29 @@ public class TaskTrackerRequestHandler extends Thread {
 				String className = je.getName().substring(0,
 						je.getName().length() - 6);
 				className = className.replace('/', '.');
-				Class c = cl.loadClass(className);
-				// if(Mapper.class.isAssignableFrom(c) ||
-				// Reducer.class.isAssignableFrom(c)){
+				Class<?> c = cl.loadClass(className);
+				System.out.println(className);
+				//System.out.println(ds.mapreduce.Common.Mapper.class.isAssignableFrom(c.getClass()));
+				//System.out.println(ds.mapreduce.Common.Mapper.class.isAssignableFrom(c));
+				//if (t.getTaskType() == TaskType.MAP
+				//		&& Mapper.class.isAssignableFrom(c)) {
+				System.out.println(c.getSuperclass().getName());
 				if (t.getTaskType() == TaskType.MAP
-						&& Mapper.class.isAssignableFrom(c)) {
+						&& c.getSuperclass().getName().contains("Mapper")) {
+					System.out.println("Found mapper!");
 					MapRecordReader mReader = new MapRecordReader(
 							((MapTask) t).getInputPath(), tracker.getNameNode());
 					MapOutputCollector mCollector = new MapOutputCollector(
 							t.getOutputPath(), 10, t.getJobId(), t.getTaskId(),
 							tracker.getNameNode());
-					Mapper mapper = (Mapper) c.getConstructor(
-							MapRecordReader.class, MapOutputCollector.class)
-							.newInstance(mReader, mCollector);
+					Constructor[] constructors = c.getConstructors();
+					for (int i = 0; i < constructors.length; i++) {
+						System.out.println("constuctor: " + constructors[i]);
+					}
+					Constructor con = c.getConstructor(
+							MapRecordReader.class, MapOutputCollector.class);
+					System.out.println("Created constructor");
+					Mapper mapper = (Mapper) con.newInstance(mReader, mCollector);
 					Thread thread = new Thread(mapper);
 					Thread.UncaughtExceptionHandler h = new Thread.UncaughtExceptionHandler() {
 					    public void uncaughtException(Thread th, Throwable ex) {
@@ -121,7 +132,8 @@ public class TaskTrackerRequestHandler extends Thread {
 					tracker.setIdle(true);
 					return;
 				} else if (t.getTaskType() == TaskType.REDUCE
-						&& Reducer.class.isAssignableFrom(c)) {
+						//&& Reducer.class.isAssignableFrom(c)) {
+						&& c.getSuperclass().getName().contains("Reducer")) {
 					ReduceRecordReader rReader = new ReduceRecordReader(
 							((ReduceTask) t).getPartitionId(), t.getJobId(),
 							tracker.getNameNode());

@@ -69,6 +69,7 @@ public class JobTrackerRequestHandler extends Thread {
 			inStream = new ObjectInputStream(client.getInputStream());
 			MRMessage msg = (MRMessage) inStream.readObject();
 			if (msg.getCommand() == Command.SUBMIT) {
+				outStream.writeObject(new MRMessage(Command.HEARTBEAT, ""));
 				System.out.println("Received a submit command");
 				addJob((JobSubmission) msg.getPayload());
 			}
@@ -77,7 +78,7 @@ public class JobTrackerRequestHandler extends Thread {
 					.getHostName().toString();
 				tracker.setAlive(hostname);
 				Boolean isIdle = (Boolean) msg.getPayload();
-				//System.out.println("Received heartbeat from jobtrcker");
+				//System.out.println("Received heartbeat from jobtrcker from" + hostname);
 				if (isIdle) {					
 					Task task = tracker.assignTask(hostname);
 					if (task != null) {

@@ -23,6 +23,7 @@ public class Mapper extends Thread {
 	public void run() {
 		String nextRecord;
 		try {
+			System.out.println("In Mapper run!");
 			while ((nextRecord = reader.nextRecord()) != null) {
 				map(nextRecord, collector);
 			}
