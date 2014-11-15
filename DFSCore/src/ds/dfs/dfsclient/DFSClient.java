@@ -44,15 +44,19 @@ public class DFSClient {
 			System.out.println("GetFileParts: " + dfsPath);
 			Socket client = new Socket(nameNodeHost, Constants.NAMENODE_PORT);
 			ObjectOutputStream outStream = new ObjectOutputStream(client.getOutputStream());
-			outStream.writeObject(new DFSMessage(Command.DFSCLIENT, ""));
 			ObjectInputStream inStream = new ObjectInputStream(client.getInputStream());
+			outStream.writeObject(new DFSMessage(Command.DFSCLIENT, ""));
+			outStream.flush();
 			DFSMessage msg = (DFSMessage) inStream.readObject();
 			dfsPath = dfsPath.split("DFS://")[1];
 			if (!dfsPath.contains("/"))
 				dfsPath = "/" + dfsPath;
 			if (msg.getCommand() == Command.OK) {
+				System.out.println("Got OK from namenode");
 				outStream.writeObject(new DFSMessage(Command.GETFILEPARTS, dfsPath));
+				outStream.flush();
 				DFSMessage message = (DFSMessage) inStream.readObject();
+				System.out.println("Here its screwed");
 				if (message != null) {
 					for (String s : (ArrayList<String>) message.getPayload()) {
 						fileParts.add(s);
@@ -67,6 +71,7 @@ public class DFSClient {
 			e.printStackTrace();
 			System.out.println("ClassNotFoundException: " + e.getMessage());
 		}
+		System.out.println("GetFileParts ended: " + dfsPath);
 		return fileParts;
 	}
 
@@ -153,6 +158,7 @@ public class DFSClient {
 	 * @throws InterruptedException
 	 */
 	public String copyToLocal(String file, String DFSfilePath, String localFilePath, boolean part) throws IOException, ClassNotFoundException, InterruptedException {
+		System.out.println("copyToLocal: " + file);
 		String localFile = "";
 		Socket client = new Socket(nameNodeHost, Constants.NAMENODE_PORT);
 		ObjectOutputStream outStream = new ObjectOutputStream(client.getOutputStream());
@@ -224,6 +230,7 @@ public class DFSClient {
 			inStream.close();
 			client.close();
 		}
+		System.out.println("copyToLocal ended: " + file);
 		return localFile;
 	}
 

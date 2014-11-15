@@ -46,10 +46,7 @@ public class DFSClientHandler extends Thread {
 				else {
 					String[] fileList = tempFilePath.split("/");
 					//Add to NameNode.filelist
-					ArrayList<String> dataNodeList = new ArrayList<String>();
-					for (String dn : NameNode.dataNodes.keySet()) {
-						dataNodeList.add(NameNode.dataNodes.get(dn).host);
-					}
+					ArrayList<String> dataNodeList = NameNode.replicateToDataNodes(tempFilePath, dfsFolder + "/" + fileList[fileList.length - 1]);
 					HashMap<String, ArrayList<String>> fileMap = new HashMap<String, ArrayList<String>>();
 					fileMap.put(
 							dfsFolder + "/" + fileList[fileList.length - 1],
@@ -61,7 +58,6 @@ public class DFSClientHandler extends Thread {
 						dfsFileName = dfsFolder + "/" + fileList[fileList.length - 1];
 					DFSFile dfsFile = new DFSFile(dfsFileName, 0, fileMap);
 					NameNode.fileList.add(dfsFile);
-					NameNode.sendFilesToDataNodes(tempFilePath, dfsFolder + "/" + fileList[fileList.length - 1]);
 					out.writeObject(new DFSMessage(Command.OK, ""));
 				}
 				// NameNode.addFileToDFS((String)msg.getPayload());
@@ -75,6 +71,7 @@ public class DFSClientHandler extends Thread {
 						found = true;
 						System.out.println("File Found. Returning parts");
 						out.writeObject(new DFSMessage(Command.OK, new ArrayList<String>(file.partitionLoc.keySet())));
+						out.flush();
 						break;
 					}
 				}

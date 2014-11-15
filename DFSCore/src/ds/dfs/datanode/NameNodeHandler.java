@@ -33,7 +33,7 @@ public class NameNodeHandler extends Thread {
 			if (msg.getCommand() == Command.CREATE) {
 				out.writeObject(new DFSMessage(Command.OK, ""));
 				out.flush();
-				FileReceiver receiver = new FileReceiver(dfsRoot + "\\" + msg.getPayload(), socket, out, in);
+				FileReceiver receiver = new FileReceiver(dfsRoot + "/" + msg.getPayload(), socket, out, in);
 				receiver.start();
 			}
 			else if (msg.getCommand() == Command.DELETE) {

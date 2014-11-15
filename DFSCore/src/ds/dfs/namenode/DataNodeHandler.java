@@ -31,7 +31,7 @@ public class DataNodeHandler extends Thread {
 			if (msg.getCommand() == Command.REGISTER) {
 				DataNodeMetadata metadata = (DataNodeMetadata)msg.getPayload();
 				NameNode.addDataNode(metadata.dataNodeId, metadata);
-				System.out.println("Data node registered: " + metadata.dataNodeId);
+				System.out.println("Data node registered: " + metadata.host);
 			}
 			socket.close();
 		} catch (IOException e) {

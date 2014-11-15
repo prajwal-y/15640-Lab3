@@ -24,6 +24,7 @@ public class FileReceiver extends Thread {
 	@Override
 	public void run() {
 		try {
+			System.out.println("Trying to write to: " + fileName + " in FileReceiver");
 			File f = new File(fileName);
 			System.out.println(fileName);
 			final File parent_directory = f.getParentFile();

@@ -10,12 +10,12 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.lang.Thread;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Random;
 
 import ds.dfs.comm.DFSMessage;
 import ds.dfs.util.Command;
@@ -68,13 +68,32 @@ public class NameNode extends Thread {
 			}
 		}
 	}
-	
+
 	/**
-	 * TODO:
-	 * @param fileName
+	 * Replicates the file to datanodes
+	 * @param file
+	 * @param dfsFileName
+	 * @return
 	 */
-	public static void addToFileList() {
-		
+	public static ArrayList<String> replicateToDataNodes(String file, String dfsFileName) {
+		ArrayList<String> hostList = new ArrayList<String>();
+		if (dataNodes.size() <= Constants.REPLICATION_FACTOR) {
+			for(String key : dataNodes.keySet())
+				hostList.add(dataNodes.get(key).host);
+			sendFilesToDataNodes(file, dfsFileName, dataNodes);
+		} else {
+			HashMap<String, DataNodeMetadata> dataNodeList = new HashMap<String, DataNodeMetadata>();
+			ArrayList<String> keySet = new ArrayList<String>();
+			keySet.addAll(dataNodes.keySet());
+			for (int i = 0; i < Constants.REPLICATION_FACTOR; i++) {
+				Random random = new Random();
+				String key = keySet.get(random.nextInt(dataNodes.size()));
+				dataNodeList.put(key, dataNodes.get(key));
+				hostList.add(dataNodes.get(key).host);
+			}
+			sendFilesToDataNodes(file, dfsFileName, dataNodeList);
+		}
+		return hostList;
 	}
 
 	/**
@@ -110,12 +129,14 @@ public class NameNode extends Thread {
 						out.write(s + "\n");
 					}
 					out.close();
-					sendFilesToDataNodes(partFile.getAbsolutePath(), dfsFolder
+					ArrayList<String> dataNodeList = replicateToDataNodes(partFile.getAbsolutePath(), dfsFolder
 							+ "/" + file + "/" + partFile.getName());
-					ArrayList<String> dataNodeList = new ArrayList<String>();
-					for (String dn : dataNodes.keySet()) {
-						dataNodeList.add(dataNodes.get(dn).host);
-					}
+					//sendFilesToDataNodes(partFile.getAbsolutePath(), dfsFolder
+					//		+ "/" + file + "/" + partFile.getName());
+					//ArrayList<String> dataNodeList = new ArrayList<String>();
+					//for (String dn : dataNodes.keySet()) {
+					//	dataNodeList.add(dataNodes.get(dn).host);
+					//}
 					partFiles.put(
 							dfsFolder + "/" + file + "/" + partFile.getName(),
 							dataNodeList);
@@ -135,13 +156,9 @@ public class NameNode extends Thread {
 				BufferedWriter out = new BufferedWriter(fw);
 				for (String s : lines) {
 					out.write(s + "\n");
-				}
-				sendFilesToDataNodes(partFile.getAbsolutePath(), dfsFolder
+				}	
+				ArrayList<String> dataNodeList = replicateToDataNodes(partFile.getAbsolutePath(), dfsFolder
 						+ "/" + file + "/" + partFile.getName());
-				ArrayList<String> dataNodeList = new ArrayList<String>();
-				for (String dn : dataNodes.keySet()) {
-					dataNodeList.add(dataNodes.get(dn).host);
-				}
 				partFiles.put(
 						dfsFolder + "/" + file + "/" + partFile.getName(),
 						dataNodeList);
@@ -179,18 +196,15 @@ public class NameNode extends Thread {
 	 * @param file
 	 * @param dataFileName
 	 */
-	public static void sendFilesToDataNodes(String file, String dataFileName) {
-		for (String s : dataNodes.keySet()) {
+	public static void sendFilesToDataNodes(String file, String dataFileName, HashMap<String, DataNodeMetadata> dataNodeList) {
+		for (String s : dataNodeList.keySet()) {
 			Socket socket;
 			try {
-				socket = new Socket(dataNodes.get(s).host,
-						Constants.DATANODE_PORT);
-				ObjectOutputStream out = new ObjectOutputStream(
-						socket.getOutputStream());
+				socket = new Socket(dataNodeList.get(s).host, Constants.DATANODE_PORT);
+				ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
 				out.writeObject(new DFSMessage(Command.NAMENODE, ""));
 				out.flush();
-				ObjectInputStream in = new ObjectInputStream(
-						socket.getInputStream());
+				ObjectInputStream in = new ObjectInputStream(socket.getInputStream());
 				if (((DFSMessage) in.readObject()).getCommand() == Command.OK) {
 					out.writeObject(new DFSMessage(Command.CREATE, dataFileName));
 					out.flush();
@@ -224,10 +238,8 @@ public class NameNode extends Thread {
 			while (true) {
 				System.out.println("NameNode server running");
 				Socket socket = server.accept();
-				ObjectInputStream in = new ObjectInputStream(
-						socket.getInputStream());
-				ObjectOutputStream out = new ObjectOutputStream(
-						socket.getOutputStream());
+				ObjectInputStream in = new ObjectInputStream(socket.getInputStream());
+				ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
 				DFSMessage message = (DFSMessage) in.readObject();
 				if (message.getCommand() == Command.DATANODE) {
 					new DataNodeHandler(socket, in, out).start();
@@ -239,8 +251,7 @@ public class NameNode extends Thread {
 		} catch (IOException e) {
 			System.out.println("IOException occurred: " + e.getMessage());
 		} catch (ClassNotFoundException e) {
-			System.out.println("ClassNotFoundException occurred: "
-					+ e.getMessage());
+			System.out.println("ClassNotFoundException occurred: " + e.getMessage());
 		}
 	}
 
