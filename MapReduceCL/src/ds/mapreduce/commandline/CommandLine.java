@@ -9,9 +9,11 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.HashMap;
 
 import ds.dfs.dfsclient.DFSClient;
+import ds.mapreduce.Common.ClusterStatus;
 import ds.mapreduce.Common.Command;
 import ds.mapreduce.Common.Constants;
 import ds.mapreduce.Common.JobSubmission;
@@ -53,10 +55,6 @@ public class CommandLine {
 		System.out.println("No options: Prints this message");
 		System.out.println("-status Print the status of currently running job on the map reduce framework");
 		System.out.println("-submit <input location(afs/dfs)> <output location on dfs> <map/reduce jar implemented by user>: Submit a job to the cluster");
-		System.out.println("-copyFromLocal <local location(afs)> <location on dfs>: Copy a file into the dfs");
-		System.out.println("-copyToLocal <location on dfs> <local location(afs)>: Copy a file from the dfs to the local filesystem");
-		System.out.println("-copy <input location on dfs> <output location on dfs>: Copy files within the dfs");
-		System.out.println("-fs Prints current dfs folder hierarchy");
 		System.exit(0);
 	}
 	
@@ -67,8 +65,36 @@ public class CommandLine {
 		if(args[0].equals("-status")){
 			if(args.length != 1)
 				printUsage();
-			//Get status from JobTracker
-			//Parse and print JobTracker data
+			Socket jSocket;
+			try {
+				jSocket = new Socket(jobTrackerHostName, Constants.JOBTRACKER_PORT);
+				MRMessage msg = new MRMessage(Command.LISTJOBS, null);
+				ObjectOutputStream out = new ObjectOutputStream(jSocket.getOutputStream());
+				out.writeObject(msg);
+				out.flush();
+				ObjectInputStream in = new ObjectInputStream(jSocket.getInputStream());
+				MRMessage result = (MRMessage) in.readObject();
+				ClusterStatus status = (ClusterStatus) result.getPayload();
+				HashMap<String, ArrayList<Integer>> jobData = status.getClusterStatus();
+				System.out.println("Jobs currently running : " + jobData.keySet().size());
+				for (String job : jobData.keySet()){
+					ArrayList<Integer> taskCount = jobData.get(job);
+					System.out.println("Job ID: " + job);
+					System.out.println("\tTotal number of map tasks : " + taskCount.get(0));
+					System.out.println("\tTotal number of reduce tasks : " + taskCount.get(1));
+					System.out.println("\tMap tasks currently running : " + taskCount.get(2));
+					System.out.println("\tReduce tasks currently running : " + taskCount.get(3));
+					System.out.println("\tPending map tasks : "  + (taskCount.get(0) - taskCount.get(2)));
+					System.out.println("\tPending reduce tasks : " + (taskCount.get(1) - taskCount.get(3)));
+					System.out.println();
+				}
+			} catch (UnknownHostException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
+				e.printStackTrace();
+			} catch (ClassNotFoundException e) {
+				e.printStackTrace();
+			}
 		}
 		if(args[0].equals("-submit")){
 			if(args.length != 4)
@@ -115,30 +141,6 @@ public class CommandLine {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-		}
-		if(args[0].equals("-copyFromLocal")){
-			if(args.length != 3)
-				printUsage();
-			//Use DFS library to copy data into DFS
-			//Print exceptions or success as required
-		}
-		if(args[0].equals("-copyToLocal")){
-			if(args.length != 3)
-				printUsage();
-			//Use DFS library to copy data into local system
-			//Print exceptions or success as required
-		}
-		if(args[0].equals("-copy")){
-			if(args.length != 3)
-				printUsage();
-			//Use DFS library to copy data into DFS
-			//Print exceptions or success as required
-		}
-		if(args[0].equals("-fs")){
-			if(args.length != 1)
-				printUsage();
-			//Use DFS library to get DFS state
-			//Print state
 		}
 	}
 }
