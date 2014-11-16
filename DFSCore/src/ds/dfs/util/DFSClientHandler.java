@@ -60,7 +60,6 @@ public class DFSClientHandler extends Thread {
 					NameNode.fileList.add(dfsFile);
 					out.writeObject(new DFSMessage(Command.OK, ""));
 				}
-				// NameNode.addFileToDFS((String)msg.getPayload());
 			} else if (msg.getCommand() == Command.GETFILEPARTS) {
 				String fileName = (String) msg.getPayload();
 				boolean found = false;
