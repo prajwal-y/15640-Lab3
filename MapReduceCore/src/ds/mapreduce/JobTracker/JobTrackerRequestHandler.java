@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.UUID;
 
 import ds.dfs.dfsclient.DFSClient;
+import ds.mapreduce.Common.ClusterStatus;
 import ds.mapreduce.Common.Command;
 import ds.mapreduce.Common.Constants;
 import ds.mapreduce.Common.JobSubmission;
@@ -25,7 +26,7 @@ public class JobTrackerRequestHandler extends Thread {
 		client = c;
 		tracker = t;
 	}
-	
+
 	/**
 	 * When user submits a job, divide the work into maps and reduces and add it
 	 * to our task queues(map/reduce).
@@ -38,8 +39,7 @@ public class JobTrackerRequestHandler extends Thread {
 		String jPath = job.getJarPath();
 		String jobId = UUID.randomUUID().toString();
 		int mapTaskCount = 1;
-		tracker.addJob(jobId);
-		DFSClient dfsClient = new DFSClient(tracker.getNameNode()); 
+		DFSClient dfsClient = new DFSClient(tracker.getNameNode());
 		ArrayList<InputSplit> splits = new ArrayList<InputSplit>();
 		ArrayList<String> parts = dfsClient.getFileParts(iPath);
 		for (String part : parts) {
@@ -60,6 +60,7 @@ public class JobTrackerRequestHandler extends Thread {
 					TaskType.REDUCE, jPath, "r" + i, reducers, oPath);
 			tracker.addReduceTask(r);
 		}
+		tracker.addJob(jobId);
 	}
 
 	@Override
@@ -74,29 +75,37 @@ public class JobTrackerRequestHandler extends Thread {
 				addJob((JobSubmission) msg.getPayload());
 			}
 			if (msg.getCommand() == Command.HEARTBEAT) {
-				String hostname = client.getInetAddress()
-					.getHostName().toString();
+				String hostname = client.getInetAddress().getHostName()
+						.toString();
 				tracker.setAlive(hostname);
 				Boolean isIdle = (Boolean) msg.getPayload();
-				//System.out.println("Received heartbeat from jobtrcker from" + hostname);
-				if (isIdle) {					
+				// System.out.println("Received heartbeat from jobtrcker from" +
+				// hostname);
+				if (isIdle) {
 					Task task = tracker.assignTask(hostname);
 					if (task != null) {
-						Socket tasktrackerSocket = new Socket(hostname, Constants.TASKTRACKER_PORT);
-						ObjectOutputStream taskOutStream = new ObjectOutputStream(tasktrackerSocket.getOutputStream());
+						Socket tasktrackerSocket = new Socket(hostname,
+								Constants.TASKTRACKER_PORT);
+						ObjectOutputStream taskOutStream = new ObjectOutputStream(
+								tasktrackerSocket.getOutputStream());
 						MRMessage taskMsg = new MRMessage(Command.TASK, task);
 						taskOutStream.writeObject(taskMsg);
-						//tasktrackerSocket.close();
+						// tasktrackerSocket.close();
 					}
 				}
 			}
 			if (msg.getCommand() == Command.JOBSTATUS) {
-				String hostname = client.getInetAddress()
-						.getHostName().toString();
+				String hostname = client.getInetAddress().getHostName()
+						.toString();
 				TaskResult result = (TaskResult) msg.getPayload();
 				tracker.markTask(result, hostname);
 			}
-			//client.close();
+			if (msg.getCommand() == Command.LISTJOBS) {
+				ClusterStatus status = tracker.getClusterStatus();
+				MRMessage statusMsg = new MRMessage(Command.LISTJOBS, status);
+				outStream.writeObject(statusMsg);
+			}
+			// client.close();
 		} catch (IOException e) {
 			e.printStackTrace();
 		} catch (ClassNotFoundException e) {

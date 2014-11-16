@@ -12,6 +12,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import ds.mapreduce.Common.ClusterStatus;
 import ds.mapreduce.Common.Command;
 import ds.mapreduce.Common.Constants;
 import ds.mapreduce.Common.MRMessage;
@@ -35,6 +36,33 @@ public class JobTracker {
 
 	public String getNameNode(){
 		return nameNodeHost;
+	}
+	
+	public ClusterStatus getClusterStatus(){
+		HashMap<String, ArrayList<Integer>> data = new HashMap<String, ArrayList<Integer>>();
+		for (String job : jobQueue){
+			int numMapTasks = mapQueue.get(job).size();
+			int numRedTasks = reduceQueue.get(job).size();
+			int pendingMapTasks = 0;
+			int pendingReduceTasks = 0;
+			ArrayList<MapTask> mTasks = mapQueue.get(job);
+			ArrayList<ReduceTask> rTasks = reduceQueue.get(job);
+			for (MapTask m : mTasks){
+				if(m.getState() == TaskState.PENDING)
+					pendingMapTasks++;
+			}
+			for (ReduceTask r : rTasks){
+				if(r.getState() == TaskState.PENDING)
+					pendingReduceTasks++;
+			}
+			data.put(job, new ArrayList<Integer>());
+			data.get(job).add(numMapTasks);
+			data.get(job).add(numRedTasks);
+			data.get(job).add(pendingMapTasks);
+			data.get(job).add(pendingReduceTasks);
+		}
+		ClusterStatus status = new ClusterStatus(data);
+		return status;
 	}
 	
 	private static void checkFailedNodes() {
@@ -127,8 +155,10 @@ public class JobTracker {
 				}
 			}
 		}
-		if (reducesOver)
+		if (mapsOver && reducesOver) {
+			System.out.println("Job " + jobQueue.get(0) + " completed. Removing from job queue.");
 			jobQueue.remove(0);
+		}
 		return null;
 	}
 
